@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Irado Chatbot Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link href="{{ url_for('static', filename='css/dashboard.css') }}" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-robot me-2"></i>
+                Irado Chatbot Dashboard
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    <i class="fas fa-database me-1"></i>
+                    Bedrijfsklanten Management
+                </span>
+                <span class="navbar-text">
+                    <i class="fas fa-tag me-1"></i>
+                    Dashboard v2.2.0
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs mb-4" id="dashboardTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="koad-tab" data-bs-toggle="tab" data-bs-target="#koad-pane" type="button" role="tab">
+                    <i class="fas fa-building me-2"></i>Bedrijfsklanten
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="chat-tab" data-bs-toggle="tab" data-bs-target="#chat-pane" type="button" role="tab">
+                    <i class="fas fa-comments me-2"></i>Chat History
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="prompt-tab" data-bs-toggle="tab" data-bs-target="#prompt-pane" type="button" role="tab">
+                    <i class="fas fa-cogs me-2"></i>System Prompt
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs-pane" type="button" role="tab">
+                    <i class="fas fa-terminal me-2"></i>Live Logs 🔥
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="dashboardTabContent">
+            <!-- KOAD Tab -->
+            <div class="tab-pane fade show active" id="koad-pane" role="tabpanel">
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="card-title" id="total-entries">-</h4>
+                                <p class="card-text">Totaal Entries</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-list fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="card-title" id="active-entries">-</h4>
+                                <p class="card-text">Actieve Entries</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="card-title" id="unique-postcodes">-</h4>
+                                <p class="card-text">Unieke Postcodes</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-map-marker-alt fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="card-title" id="unique-streets">-</h4>
+                                <p class="card-text">Unieke Straten</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-road fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="row">
+            <!-- Search and Filters -->
+            <div class="col-12 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" class="form-control" id="search-input" placeholder="Zoek op straat, postcode, huisnummer of naam...">
+                                </div>
+                            </div>
+                                    <div class="col-md-6">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEntryModal">
+                                                <i class="fas fa-plus me-1"></i>Nieuwe Entry
+                                            </button>
+                                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                                                <i class="fas fa-upload me-1"></i>Upload CSV
+                                            </button>
+                                            <button type="button" class="btn btn-info" onclick="refreshData()">
+                                                <i class="fas fa-refresh me-1"></i>Refresh
+                                            </button>
+                                        </div>
+                                    </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KOAD Table -->
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-ban me-2"></i>
+                            Bedrijfsklanten Entries
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="koad-table">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Straat</th>
+                                        <th>Postcode</th>
+                                        <th>Huisnummer</th>
+                                        <th>Naam</th>
+                                        <th>Actief</th>
+                                        <th>Acties</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="koad-table-body">
+                                    <!-- Data will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div>
+                                <span id="table-info">Geen data geladen</span>
+                            </div>
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0" id="pagination">
+                                    <!-- Pagination will be generated here -->
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Entry Modal -->
+    <div class="modal fade" id="addEntryModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nieuwe KOAD Entry Toevoegen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-entry-form">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="add-koad-nummer" class="form-label">KOAD Nummer</label>
+                                    <input type="text" class="form-control" id="add-koad-nummer" name="KOAD-nummer">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="add-koad-naam" class="form-label">Naam</label>
+                                    <input type="text" class="form-control" id="add-koad-naam" name="KOAD-naam">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="add-koad-str" class="form-label">Straat *</label>
+                                    <input type="text" class="form-control" id="add-koad-str" name="KOAD-str" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="add-koad-pc" class="form-label">Postcode *</label>
+                                    <input type="text" class="form-control" id="add-koad-pc" name="KOAD-pc" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="add-koad-huisnr" class="form-label">Huisnummer *</label>
+                                    <input type="text" class="form-control" id="add-koad-huisnr" name="KOAD-huisnr" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="add-koad-huisaand" class="form-label">Huisletter</label>
+                                    <input type="text" class="form-control" id="add-koad-huisaand" name="KOAD-huisaand">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="add-koad-etage" class="form-label">Etage</label>
+                                    <input type="text" class="form-control" id="add-koad-etage" name="KOAD-etage">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="add-koad-actief" class="form-label">Actief</label>
+                                    <select class="form-select" id="add-koad-actief" name="KOAD-actief">
+                                        <option value="1">Ja</option>
+                                        <option value="0">Nee</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="add-koad-inwoner" class="form-label">Inwoner</label>
+                                    <select class="form-select" id="add-koad-inwoner" name="KOAD-inwoner">
+                                        <option value="1">Ja</option>
+                                        <option value="0">Nee</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                    <button type="button" class="btn btn-primary" onclick="addEntry()">Toevoegen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload CSV Modal -->
+    <div class="modal fade" id="uploadModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">CSV Bestand Uploaden</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="csv-file" class="form-label">Selecteer CSV bestand</label>
+                        <input type="file" class="form-control" id="csv-file" accept=".csv">
+                        <div class="form-text">
+                            Het bestand moet de volgende kolommen bevatten: KOAD-str, KOAD-pc, KOAD-huisnr
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                    <button type="button" class="btn btn-primary" onclick="uploadCSV()">Uploaden</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Entry Modal -->
+    <div class="modal fade" id="editEntryModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">KOAD Entry Bewerken</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-entry-form">
+                        <input type="hidden" id="edit-entry-id">
+                        <!-- Same form fields as add modal, but with edit- prefix -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-koad-nummer" class="form-label">KOAD Nummer</label>
+                                    <input type="text" class="form-control" id="edit-koad-nummer" name="KOAD-nummer">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-koad-naam" class="form-label">Naam</label>
+                                    <input type="text" class="form-control" id="edit-koad-naam" name="KOAD-naam">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-koad-str" class="form-label">Straat *</label>
+                                    <input type="text" class="form-control" id="edit-koad-str" name="KOAD-str" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="edit-koad-pc" class="form-label">Postcode *</label>
+                                    <input type="text" class="form-control" id="edit-koad-pc" name="KOAD-pc" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="edit-koad-huisnr" class="form-label">Huisnummer *</label>
+                                    <input type="text" class="form-control" id="edit-koad-huisnr" name="KOAD-huisnr" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-koad-huisaand" class="form-label">Huisletter</label>
+                                    <input type="text" class="form-control" id="edit-koad-huisaand" name="KOAD-huisaand">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-koad-etage" class="form-label">Etage</label>
+                                    <input type="text" class="form-control" id="edit-koad-etage" name="KOAD-etage">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-koad-actief" class="form-label">Actief</label>
+                                    <select class="form-select" id="edit-koad-actief" name="KOAD-actief">
+                                        <option value="1">Ja</option>
+                                        <option value="0">Nee</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-koad-inwoner" class="form-label">Inwoner</label>
+                                    <select class="form-select" id="edit-koad-inwoner" name="KOAD-inwoner">
+                                        <option value="1">Ja</option>
+                                        <option value="0">Nee</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                    <button type="button" class="btn btn-primary" onclick="updateEntry()">Bijwerken</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create System Prompt Modal -->
+    <div class="modal fade" id="createPromptModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nieuwe System Prompt Maken</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="create-prompt-form">
+                        <div class="mb-3">
+                            <label for="create-prompt-version" class="form-label">Versie</label>
+                            <input type="text" class="form-control" id="create-prompt-version" name="version" placeholder="bijv. 2.0" required>
+                            <div class="form-text">Bijvoorbeeld: 1.0, 2.0, 2.1, etc.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="create-prompt-content" class="form-label">Prompt Content</label>
+                            <textarea class="form-control" id="create-prompt-content" name="prompt_content" rows="20" style="font-family: monospace; font-size: 0.9rem;" required></textarea>
+                            <div class="form-text">Schrijf de volledige system prompt hier. Deze wordt gebruikt door de chatbot.</div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="create-prompt-active" name="is_active">
+                            <label class="form-check-label" for="create-prompt-active">
+                                Direct activeren (huidige actieve prompt wordt gedeactiveerd)
+                            </label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                    <button type="button" class="btn btn-primary" onclick="createSystemPrompt()">Opslaan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit System Prompt Modal -->
+    <div class="modal fade" id="editPromptModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">System Prompt Bewerken</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-prompt-form">
+                        <input type="hidden" id="edit-prompt-id" name="prompt_id">
+                        <div class="mb-3">
+                            <label for="edit-prompt-version" class="form-label">Versie</label>
+                            <input type="text" class="form-control" id="edit-prompt-version" name="version" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-prompt-content" class="form-label">Prompt Content</label>
+                            <textarea class="form-control" id="edit-prompt-content" name="prompt_content" rows="20" style="font-family: monospace; font-size: 0.9rem;" required></textarea>
+                        </div>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Let op:</strong> Wijzigingen worden direct doorgevoerd als dit de actieve prompt is.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                    <button type="button" class="btn btn-primary" onclick="updateSystemPrompt()">Bijwerken</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View System Prompt Modal -->
+    <div class="modal fade" id="viewPromptModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">System Prompt Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <strong>Versie:</strong> <span id="view-prompt-version">-</span><br>
+                        <strong>Gemaakt:</strong> <span id="view-prompt-created">-</span><br>
+                        <strong>Laatst bijgewerkt:</strong> <span id="view-prompt-updated">-</span><br>
+                        <strong>Status:</strong> <span id="view-prompt-status">-</span>
+                    </div>
+                    <hr>
+                    <div>
+                        <strong>Content:</strong>
+                        <pre id="view-prompt-content" style="white-space: pre-wrap; background: #f8f9fa; padding: 1rem; border-radius: 0.375rem; font-family: monospace; font-size: 0.9rem; max-height: 500px; overflow-y: auto;">
+                            <!-- Content will be loaded here -->
+                        </pre>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Sluiten</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="toast" class="toast" role="alert">
+            <div class="toast-header">
+                <i class="fas fa-info-circle text-primary me-2"></i>
+                <strong class="me-auto">Notificatie</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toast-message">
+                <!-- Message will be inserted here -->
+            </div>
+        </div>
+            </div>
+
+            <!-- System Prompt Tab -->
+            <div class="tab-pane fade" id="prompt-pane" role="tabpanel">
+                <!-- System Prompt Editor -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-edit me-2"></i>
+                                    System Prompt Editor
+                                </h5>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="loadSystemPrompts()">
+                                        <i class="fas fa-refresh me-1"></i>Refresh
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#createPromptModal">
+                                        <i class="fas fa-plus me-1"></i>Nieuwe Prompt
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <!-- Active Prompt Display -->
+                                <div class="alert alert-info mb-4" id="active-prompt-alert">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="alert-heading">
+                                                <i class="fas fa-check-circle me-2"></i>
+                                                Actieve System Prompt
+                                            </h6>
+                                            <div id="active-prompt-content" class="mb-2" style="white-space: pre-wrap; font-family: monospace; font-size: 0.9rem;">
+                                                <!-- Active prompt content -->
+                                            </div>
+                                            <small class="text-muted">
+                                                <strong>Versie:</strong> <span id="active-prompt-version">-</span> | 
+                                                <strong>Laatst bijgewerkt:</strong> <span id="active-prompt-updated">-</span>
+                                            </small>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="editActivePrompt()">
+                                            <i class="fas fa-edit me-1"></i>Bewerk
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Prompt History -->
+                                <h6 class="mb-3">
+                                    <i class="fas fa-history me-2"></i>
+                                    Prompt Versies
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover" id="prompts-table">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Versie</th>
+                                                <th>Gemaakt</th>
+                                                <th>Bijgewerkt</th>
+                                                <th>Status</th>
+                                                <th>Acties</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="prompts-table-body">
+                                            <!-- Data will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat History Tab -->
+            <div class="tab-pane fade" id="chat-pane" role="tabpanel">
+                <!-- Chat Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4 class="card-title" id="total-sessions">-</h4>
+                                        <p class="card-text">Totaal Sessions</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-users fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4 class="card-title" id="total-messages">-</h4>
+                                        <p class="card-text">Totaal Berichten</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-comment fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4 class="card-title" id="sessions-today">-</h4>
+                                        <p class="card-text">Sessions Vandaag</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-calendar-day fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-secondary text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4 class="card-title" id="sessions-week">-</h4>
+                                        <p class="card-text">Sessions Deze Week</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-calendar-week fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Search and Controls -->
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                            <input type="text" class="form-control" id="chat-search-input" placeholder="Zoek in chat berichten...">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-info" onclick="loadChatSessions()">
+                                                <i class="fas fa-refresh me-1"></i>Refresh
+                                            </button>
+                                            <button type="button" class="btn btn-secondary" onclick="loadChatStats()">
+                                                <i class="fas fa-chart-bar me-1"></i>Stats
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Sessions Table -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-comments me-2"></i>
+                                    Chat Sessions
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover" id="chat-sessions-table">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Session ID</th>
+                                                <th>Gemaakt</th>
+                                                <th>Laatste Activiteit</th>
+                                                <th>Berichten</th>
+                                                <th>Laatste Bericht</th>
+                                                <th>Acties</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="chat-sessions-table-body">
+                                            <!-- Data will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <div>
+                                        <span id="chat-table-info">Geen data geladen</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Logs Tab -->
+            <div class="tab-pane fade" id="logs-pane" role="tabpanel">
+                <!-- Log Controls -->
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-6">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-terminal me-2"></i>
+                                            Chatbot Live Logs
+                                            <span id="log-status" class="badge bg-secondary ms-2">Stopped</span>
+                                        </h5>
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-success" id="start-logs-btn" onclick="startLiveLogs()">
+                                                <i class="fas fa-play me-1"></i>Start
+                                            </button>
+                                            <button type="button" class="btn btn-danger" id="stop-logs-btn" onclick="stopLiveLogs()" disabled>
+                                                <i class="fas fa-stop me-1"></i>Stop
+                                            </button>
+                                            <button type="button" class="btn btn-warning" onclick="clearLogs()">
+                                                <i class="fas fa-trash me-1"></i>Clear
+                                            </button>
+                                            <button type="button" class="btn btn-info" onclick="downloadLogs()">
+                                                <i class="fas fa-download me-1"></i>Download
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Filter:</label>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <input type="checkbox" class="btn-check" id="filter-error" checked autocomplete="off">
+                                            <label class="btn btn-outline-danger" for="filter-error">🔴 Errors</label>
+                                            
+                                            <input type="checkbox" class="btn-check" id="filter-warning" checked autocomplete="off">
+                                            <label class="btn btn-outline-warning" for="filter-warning">⚠️ Warnings</label>
+                                            
+                                            <input type="checkbox" class="btn-check" id="filter-info" checked autocomplete="off">
+                                            <label class="btn btn-outline-info" for="filter-info">ℹ️ Info</label>
+                                            
+                                            <input type="checkbox" class="btn-check" id="filter-tool" checked autocomplete="off">
+                                            <label class="btn btn-outline-primary" for="filter-tool">🔧 Tool Calls</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Auto-scroll:</label>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="auto-scroll" checked>
+                                            <label class="form-check-label" for="auto-scroll">
+                                                Auto-scroll naar bottom
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Log Display -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between">
+                                <span>
+                                    <i class="fas fa-file-alt me-2"></i>
+                                    Log Output
+                                </span>
+                                <span class="badge bg-info" id="log-count">0 lines</span>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="log-container" style="height: 600px; overflow-y: auto; background: #1e1e1e; color: #d4d4d4; font-family: 'Courier New', monospace; font-size: 0.85rem; padding: 1rem;">
+                                    <div id="log-content" style="white-space: pre-wrap; word-wrap: break-word;">
+                                        <span style="color: #888;">Waiting for logs... Click "Start" to begin streaming.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Activity Logs -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-history me-2"></i>
+                                    Dashboard Activity Logs
+                                </h5>
+                                <div>
+                                    <select class="form-select form-select-sm d-inline-block w-auto me-2" id="dashboard-log-type" onchange="loadDashboardLogs()">
+                                        <option value="">All Types</option>
+                                        <option value="CSV_UPLOAD">CSV Upload</option>
+                                        <option value="API_CALL">API Calls</option>
+                                        <option value="ERROR">Errors</option>
+                                    </select>
+                                    <button class="btn btn-sm btn-primary" onclick="loadDashboardLogs()">
+                                        <i class="fas fa-sync me-1"></i>Refresh
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="dashboard-logs-container" style="max-height: 500px; overflow-y: auto;">
+                                    <table class="table table-sm table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 180px;">Timestamp</th>
+                                                <th style="width: 120px;">Type</th>
+                                                <th style="width: 150px;">Action</th>
+                                                <th>Message</th>
+                                                <th style="width: 80px;">Level</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="dashboard-logs-table">
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted">
+                                                    <i class="fas fa-spinner fa-spin me-2"></i>Loading logs...
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v={{ range(1000, 9999) | random }}"></script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+# Azure Key Vault Configuration
+# Secrets management for Irado Chatbot System
+
+apiVersion: 2021-10-01
+kind: Vault
+metadata:
+  name: irado-keyvault
+  location: westeurope
+spec:
+  # Key Vault Configuration
+  tenantId: {tenant-id}
+  sku:
+    name: standard
+    family: A
+  
+  # Access Policies
+  accessPolicies:
+    - tenantId: {tenant-id}
+      objectId: {service-principal-object-id}
+      permissions:
+        keys:
+          - Get
+          - List
+          - Create
+          - Delete
+          - Update
+          - Import
+          - Backup
+          - Restore
+          - Recover
+        secrets:
+          - Get
+          - List
+          - Set
+          - Delete
+          - Backup
+          - Restore
+          - Recover
+        certificates:
+          - Get
+          - List
+          - Create
+          - Delete
+          - Update
+          - Import
+          - Backup
+          - Restore
+          - Recover
+          - ManageContacts
+          - ManageIssuers
+          - GetIssuers
+          - ListIssuers
+          - SetIssuers
+          - DeleteIssuers
+  
+  # Network Configuration
+  networkAcls:
+    defaultAction: Deny
+    bypass: AzureServices
+    virtualNetworkRules:
+      - id: /subscriptions/{subscription-id}/resourceGroups/irado-rg/providers/Microsoft.Network/virtualNetworks/irado-vnet/subnets/keyvault-subnet
+        ignoreMissingVnetServiceEndpoint: false
+    ipRules:
+      - value: 0.0.0.0/0
+        action: Allow
+  
+  # Soft Delete Configuration
+  enableSoftDelete: true
+  softDeleteRetentionInDays: 90
+  
+  # Purge Protection
+  enablePurgeProtection: true
+  
+  # RBAC Configuration
+  enableRbacAuthorization: false
+  
+  # Tags
+  tags:
+    Environment: Production
+    Application: Irado-Chatbot
+    Purpose: Secrets-Management
+    Version: 1.0.0
+
+---
+# Secrets Configuration
+apiVersion: 2021-10-01
+kind: Secret
+metadata:
+  name: openai-api-key
+  parent: irado-keyvault
+spec:
+  value: {openai-api-key}
+  contentType: text/plain
+  attributes:
+    enabled: true
+    expires: 2025-12-31T23:59:59Z
+
+---
+apiVersion: 2021-10-01
+kind: Secret
+metadata:
+  name: database-chat-password
+  parent: irado-keyvault
+spec:
+  value: {chat-database-password}
+  contentType: text/plain
+  attributes:
+    enabled: true
+
+---
+apiVersion: 2021-10-01
+kind: Secret
+metadata:
+  name: database-bedrijfsklanten-password
+  parent: irado-keyvault
+spec:
+  value: {bedrijfsklanten-database-password}
+  contentType: text/plain
+  attributes:
+    enabled: true
+
+---
+apiVersion: 2021-10-01
+kind: Secret
+metadata:
+  name: container-registry-password
+  parent: irado-keyvault
+spec:
+  value: {acr-password}
+  contentType: text/plain
+  attributes:
+    enabled: true
+
+---
+apiVersion: 2021-10-01
+kind: Secret
+metadata:
+  name: storage-account-key
+  parent: irado-keyvault
+spec:
+  value: {storage-account-key}
+  contentType: text/plain
+  attributes:
+    enabled: true
+
+---
+apiVersion: 2021-10-01
+kind: Secret
+metadata:
+  name: email-smtp-password
+  parent: irado-keyvault
+spec:
+  value: {email-smtp-password}
+  contentType: text/plain
+  attributes:
+    enabled: true

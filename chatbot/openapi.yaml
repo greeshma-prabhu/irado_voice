@@ -1,0 +1,190 @@
+openapi: 3.0.3
+info:
+  title: Irado Chatbot API
+  description: |
+    API für den Irado Chatbot - ein intelligenter Assistent für Fragen zu Abfallentsorgung und Recycling.
+    Der Chatbot kann Fragen zu Grofvuil, Containerstandorten, Abfallkalendern und anderen Irado-Services beantworten.
+  version: 2.1.9
+  contact:
+    name: Irado Support
+    email: irado@mainfact.ai
+  license:
+    name: Proprietary
+servers:
+  - url: https://irado.mainfact.ai/api
+    description: Production server
+  - url: http://localhost:3254/api
+    description: Development server
+paths:
+  /chat:
+    post:
+      summary: Chatbot Conversation
+      description: |
+        Sendet eine Nachricht an den Chatbot und erhält eine intelligente Antwort.
+        Der Chatbot kann Fragen zu Abfallentsorgung, Recycling, Grofvuil-Terminen und anderen Irado-Services beantworten.
+      operationId: sendChatMessage
+      tags:
+        - Chat
+      security:
+        - BasicAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            examples:
+              grofvuil_question:
+                summary: Grofvuil Frage
+                value:
+                  sessionId: "user_123_session"
+                  action: "sendMessage"
+                  chatInput: "Wann wird mein Grofvuil abgeholt?"
+              recycling_question:
+                summary: Recycling Frage
+                value:
+                  sessionId: "user_456_session"
+                  action: "sendMessage"
+                  chatInput: "Wo kann ich meinen Elektroschrott abgeben?"
+              container_question:
+                summary: Container Frage
+                value:
+                  sessionId: "user_789_session"
+                  action: "sendMessage"
+                  chatInput: "Wo steht der nächste Glascontainer?"
+      responses:
+        '200':
+          description: Erfolgreiche Antwort vom Chatbot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+              examples:
+                successful_response:
+                  summary: Erfolgreiche Antwort
+                  value:
+                    output: "Grofvuil wird normalerweise alle 2 Wochen abgeholt. Sie können Ihren nächsten Termin in der Abfallkalender-App nachschauen oder einen neuen Termin online vereinbaren."
+                recycling_info:
+                  summary: Recycling Information
+                  value:
+                    output: "Elektroschrott können Sie kostenlos am Milieustraat abgeben. Die Adresse ist: Milieustraat Vlaardingen, Industrieweg 1, 3133 AK Vlaardingen. Öffnungszeiten: Mo-Fr 8:00-16:30, Sa 9:00-15:00."
+        '400':
+          description: Ungültige Anfrage
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Invalid JSON format"
+        '401':
+          description: Nicht autorisiert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized"
+        '500':
+          description: Interner Serverfehler
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Internal server error"
+  /health:
+    get:
+      summary: Health Check
+      description: Überprüft den Status des Chatbot-Services
+      operationId: healthCheck
+      tags:
+        - System
+      responses:
+        '200':
+          description: Service ist gesund
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-09-27T19:00:00.000Z"
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: |
+        Basic Authentication mit Benutzername und Passwort.
+        Benutzername: irado
+        Passwort: 20Irado25!
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - sessionId
+        - action
+        - chatInput
+      properties:
+        sessionId:
+          type: string
+          description: |
+            Eindeutige Session-ID zur Verfolgung der Unterhaltung.
+            Sollte für alle Nachrichten einer Unterhaltung gleich bleiben.
+          example: "user_123_session_456"
+        action:
+          type: string
+          enum: [sendMessage]
+          description: |
+            Aktionstyp. Aktuell nur "sendMessage" unterstützt.
+          example: "sendMessage"
+        chatInput:
+          type: string
+          description: |
+            Die Nachricht des Benutzers an den Chatbot.
+            Kann Fragen zu Abfallentsorgung, Recycling, Terminen etc. enthalten.
+          example: "Wann wird mein Grofvuil abgeholt?"
+        timestamp:
+          type: integer
+          format: int64
+          description: |
+            Unix Timestamp der Nachricht (optional).
+          example: 1758999557888
+        source:
+          type: string
+          description: |
+            Quelle der Nachricht (optional).
+          example: "website"
+    ChatResponse:
+      type: object
+      required:
+        - output
+      properties:
+        output:
+          type: string
+          description: |
+            Die Antwort des Chatbots auf die Benutzerfrage.
+            Enthält hilfreiche Informationen zu Abfallentsorgung, Recycling oder anderen Irado-Services.
+          example: "Grofvuil wird normalerweise alle 2 Wochen abgeholt. Sie können Ihren nächsten Termin in der Abfallkalender-App nachschauen oder einen neuen Termin online vereinbaren."
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Fehlermeldung
+          example: "Invalid request format"
+tags:
+  - name: Chat
+    description: Chatbot-Unterhaltungen und Nachrichten
+  - name: System
+    description: System-Status und Health Checks
+externalDocs:
+  description: Irado Website
+  url: https://www.irado.nl

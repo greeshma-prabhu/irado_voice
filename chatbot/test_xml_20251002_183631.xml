@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grofvuil_aanvraag>
+    <metadata>
+        <timestamp>2025-10-02 18:36:31</timestamp>
+        <source>irado_chatbot</source>
+        <version>1.0</version>
+    </metadata>
+    
+    <klantgegevens>
+        <naam>Armin Jonker</naam>
+        <adres>Westfrankelandsestraat 11, 3117 AJ Schiedam</adres>
+        <email>armin@fam-jonker.de</email>
+        <gemeente>Schiedam</gemeente>
+    </klantgegevens>
+    
+    <aanvraag_details>
+        <categorie>Huisraad</categorie>
+        <aantal_items>3</aantal_items>
+        <bijzonderheden>Matras is droog en schoon</bijzonderheden>
+    </aanvraag_details>
+    
+    <afval_items>
+        <item id="1">
+            <omschrijving>1× matras (droog)</omschrijving>
+        </item>
+        <item id="2">
+            <omschrijving>1× tafel</omschrijving>
+        </item>
+        <item id="3">
+            <omschrijving>1× glasplaat (nog niet getapet)</omschrijving>
+        </item>
+    </afval_items>
+    
+    <routing_info>
+        <gemeente_specifiek>
+            <matrassen_route>apart</matrassen_route>
+            <max_volume>1_m3</max_volume>
+            <kga_service>woensdag_08_12</kga_service>
+        </gemeente_specifiek>
+    </routing_info>
+    
+    <verwerking>
+        <status>nieuw</status>
+        <prioriteit>normaal</prioriteit>
+        <verwachte_verwerking>24_uur</verwachte_verwerking>
+    </verwerking>
+</grofvuil_aanvraag>

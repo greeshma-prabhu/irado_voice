@@ -1,0 +1,99 @@
+# Azure Database for PostgreSQL - Chat Database
+# Configuration for chat history database
+
+apiVersion: 2021-06-01
+kind: FlexibleServer
+metadata:
+  name: irado-chat-db
+  location: westeurope
+spec:
+  # Server Configuration
+  administratorLogin: irado_admin
+  administratorLoginPassword: irado-chat-password
+  
+  # Database Configuration
+  version: "14"
+  sku:
+    name: Standard_B1ms
+    tier: Burstable
+  storage:
+    storageSizeGB: 32
+    autoGrow: Enabled
+  
+  # Network Configuration
+  network:
+    publicNetworkAccess: Disabled
+    delegatedSubnetResourceId: /subscriptions/{subscription-id}/resourceGroups/irado-rg/providers/Microsoft.Network/virtualNetworks/irado-vnet/subnets/database-subnet
+  
+  # Security Configuration
+  sslEnforcement: Enabled
+  minimalTlsVersion: TLS1_2
+  
+  # Backup Configuration
+  backup:
+    backupRetentionDays: 7
+    geoRedundantBackup: Disabled
+    earliestRestoreDate: 2024-01-01T00:00:00Z
+  
+  # High Availability
+  highAvailability:
+    mode: Disabled
+  
+  # Maintenance Window
+  maintenanceWindow:
+    customWindow: Enabled
+    dayOfWeek: 7
+    startHour: 2
+    startMinute: 0
+    preferredMaintenanceWindow: Sunday 02:00-03:00
+  
+  # Monitoring
+  monitoring:
+    enabled: true
+    logAnalyticsWorkspaceId: /subscriptions/{subscription-id}/resourceGroups/irado-rg/providers/Microsoft.OperationalInsights/workspaces/irado-logs
+  
+  # Tags
+  tags:
+    Environment: Production
+    Application: Irado-Chatbot
+    Database: Chat-History
+    Version: 1.0.0
+
+---
+# Database Creation
+apiVersion: 2021-06-01
+kind: Database
+metadata:
+  name: irado_chat
+  parent: irado-chat-db
+spec:
+  charset: UTF8
+  collation: en_US.utf8
+
+---
+# Firewall Rules
+apiVersion: 2021-06-01
+kind: FirewallRule
+metadata:
+  name: allow-azure-services
+  parent: irado-chat-db
+spec:
+  startIpAddress: 0.0.0.0
+  endIpAddress: 0.0.0.0
+
+---
+# User Creation
+apiVersion: 2021-06-01
+kind: User
+metadata:
+  name: irado_app_user
+  parent: irado-chat-db
+spec:
+  password: irado-app-password
+  roles:
+    - CONNECT
+    - USAGE
+    - SELECT
+    - INSERT
+    - UPDATE
+    - DELETE

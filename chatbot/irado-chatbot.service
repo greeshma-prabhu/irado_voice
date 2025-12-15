@@ -1,0 +1,29 @@
+[Unit]
+Description=Irado Chatbot Service
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/irado/chatbot
+Environment=PATH=/opt/irado/chatbot/venv/bin
+ExecStart=/opt/irado/chatbot/venv/bin/python /opt/irado/chatbot/app.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/irado/chatbot
+
+[Install]
+WantedBy=multi-user.target
+
+
+

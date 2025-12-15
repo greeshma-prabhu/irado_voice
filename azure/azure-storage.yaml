@@ -1,0 +1,147 @@
+# Azure Storage Account Configuration
+# File storage for Irado Chatbot System
+
+apiVersion: 2021-09-01
+kind: StorageAccount
+metadata:
+  name: iradostorage
+  location: westeurope
+spec:
+  # Storage Account Configuration
+  sku:
+    name: Standard_LRS
+    tier: Standard
+  
+  # Kind
+  kind: StorageV2
+  
+  # Access Tier
+  accessTier: Hot
+  
+  # HTTPS Only
+  enableHttpsTrafficOnly: true
+  
+  # Minimum TLS Version
+  minimumTlsVersion: TLS1_2
+  
+  # Allow Blob Public Access
+  allowBlobPublicAccess: false
+  
+  # Network Configuration
+  networkAcls:
+    defaultAction: Deny
+    bypass: AzureServices
+    virtualNetworkRules:
+      - id: /subscriptions/{subscription-id}/resourceGroups/irado-rg/providers/Microsoft.Network/virtualNetworks/irado-vnet/subnets/storage-subnet
+        action: Allow
+        state: Succeeded
+    ipRules:
+      - value: 0.0.0.0/0
+        action: Allow
+  
+  # Encryption
+  encryption:
+    services:
+      blob:
+        enabled: true
+        keyType: Account
+      file:
+        enabled: true
+        keyType: Account
+    keySource: Microsoft.Storage
+  
+  # Tags
+  tags:
+    Environment: Production
+    Application: Irado-Chatbot
+    Purpose: File-Storage
+    Version: 1.0.0
+
+---
+# File Share for Logs
+apiVersion: 2021-09-01
+kind: FileShare
+metadata:
+  name: logs
+  parent: iradostorage
+spec:
+  shareQuota: 100
+  accessTier: Hot
+  enabledProtocols: SMB
+  rootSquash: NoRootSquash
+
+---
+# File Share for Backups
+apiVersion: 2021-09-01
+kind: FileShare
+metadata:
+  name: backups
+  parent: iradostorage
+spec:
+  shareQuota: 100
+  accessTier: Hot
+  enabledProtocols: SMB
+  rootSquash: NoRootSquash
+
+---
+# File Share for Static Files
+apiVersion: 2021-09-01
+kind: FileShare
+metadata:
+  name: static-files
+  parent: iradostorage
+spec:
+  shareQuota: 50
+  accessTier: Hot
+  enabledProtocols: SMB
+  rootSquash: NoRootSquash
+
+---
+# File Share for CSV Uploads
+apiVersion: 2021-09-01
+kind: FileShare
+metadata:
+  name: csv-uploads
+  parent: iradostorage
+spec:
+  shareQuota: 50
+  accessTier: Hot
+  enabledProtocols: SMB
+  rootSquash: NoRootSquash
+
+---
+# Container for Blob Storage
+apiVersion: 2021-09-01
+kind: BlobContainer
+metadata:
+  name: chatbot-logs
+  parent: iradostorage
+spec:
+  publicAccess: None
+  metadata:
+    purpose: chatbot-logs
+    retention: 30-days
+
+---
+apiVersion: 2021-09-01
+kind: BlobContainer
+metadata:
+  name: dashboard-logs
+  parent: iradostorage
+spec:
+  publicAccess: None
+  metadata:
+    purpose: dashboard-logs
+    retention: 30-days
+
+---
+apiVersion: 2021-09-01
+kind: BlobContainer
+metadata:
+  name: csv-backups
+  parent: iradostorage
+spec:
+  publicAccess: None
+  metadata:
+    purpose: csv-backups
+    retention: 90-days

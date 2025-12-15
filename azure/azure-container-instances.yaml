@@ -1,0 +1,228 @@
+# Azure Container Instances Configuration
+# Irado Chatbot System - Container Group
+
+apiVersion: 2021-10-01
+kind: ContainerGroup
+metadata:
+  name: irado-chatbot-system
+  location: westeurope
+spec:
+  osType: Linux
+  restartPolicy: Always
+  
+  # Container Group Configuration
+  containers:
+    # Chatbot Service Container
+    - name: chatbot
+      image: irado.azurecr.io/chatbot:latest
+      ports:
+        - port: 5000
+          protocol: TCP
+      environmentVariables:
+        - name: FLASK_ENV
+          value: production
+        - name: DATABASE_HOST
+          value: irado-chat-db.postgres.database.azure.com
+        - name: DATABASE_NAME
+          value: irado_chat
+        - name: DATABASE_USER
+          value: irado_admin
+        - name: DATABASE_PASSWORD
+          secureValue: irado-chat-password
+        - name: BEDRIJFSKLANTEN_DB_HOST
+          value: irado-bedrijfsklanten-db.postgres.database.azure.com
+        - name: BEDRIJFSKLANTEN_DB_NAME
+          value: irado_bedrijfsklanten
+        - name: BEDRIJFSKLANTEN_DB_USER
+          value: irado_admin
+        - name: BEDRIJFSKLANTEN_DB_PASSWORD
+          secureValue: irado-bedrijfsklanten-password
+        - name: OPENAI_API_KEY
+          secureValue: openai-api-key
+        - name: OPEN_POSTCODE_API_BASE_URL
+          value: https://openpostcode.nl/api
+      resources:
+        requests:
+          cpu: 0.5
+          memoryInGb: 0.5
+        limits:
+          cpu: 1.0
+          memoryInGb: 1.0
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 5000
+        initialDelaySeconds: 30
+        periodSeconds: 30
+        timeoutSeconds: 10
+        failureThreshold: 3
+      readinessProbe:
+        httpGet:
+          path: /health
+          port: 5000
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+
+    # Dashboard Service Container
+    - name: dashboard
+      image: irado.azurecr.io/dashboard:latest
+      ports:
+        - port: 5001
+          protocol: TCP
+      environmentVariables:
+        - name: FLASK_ENV
+          value: production
+        - name: DATABASE_HOST
+          value: irado-chat-db.postgres.database.azure.com
+        - name: DATABASE_NAME
+          value: irado_chat
+        - name: DATABASE_USER
+          value: irado_admin
+        - name: DATABASE_PASSWORD
+          secureValue: irado-chat-password
+        - name: BEDRIJFSKLANTEN_DB_HOST
+          value: irado-bedrijfsklanten-db.postgres.database.azure.com
+        - name: BEDRIJFSKLANTEN_DB_NAME
+          value: irado_bedrijfsklanten
+        - name: BEDRIJFSKLANTEN_DB_USER
+          value: irado_admin
+        - name: BEDRIJFSKLANTEN_DB_PASSWORD
+          secureValue: irado-bedrijfsklanten-password
+      resources:
+        requests:
+          cpu: 0.25
+          memoryInGb: 0.25
+        limits:
+          cpu: 0.5
+          memoryInGb: 0.5
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 5001
+        initialDelaySeconds: 30
+        periodSeconds: 30
+        timeoutSeconds: 10
+        failureThreshold: 3
+      readinessProbe:
+        httpGet:
+          path: /health
+          port: 5001
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+
+    # Website Proxy Container
+    - name: website
+      image: irado.azurecr.io/website:latest
+      ports:
+        - port: 80
+          protocol: TCP
+        - port: 443
+          protocol: TCP
+      environmentVariables:
+        - name: NODE_ENV
+          value: production
+        - name: CHATBOT_URL
+          value: http://localhost:5000
+        - name: PORT
+          value: "80"
+      resources:
+        requests:
+          cpu: 0.25
+          memoryInGb: 0.25
+        limits:
+          cpu: 0.5
+          memoryInGb: 0.5
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 80
+        initialDelaySeconds: 30
+        periodSeconds: 30
+        timeoutSeconds: 10
+        failureThreshold: 3
+      readinessProbe:
+        httpGet:
+          path: /health
+          port: 80
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+
+    # Dashboard Frontend Container
+    - name: dashboard-frontend
+      image: irado.azurecr.io/dashboard-frontend:latest
+      ports:
+        - port: 80
+          protocol: TCP
+        - port: 443
+          protocol: TCP
+      environmentVariables:
+        - name: NODE_ENV
+          value: production
+        - name: DASHBOARD_URL
+          value: http://localhost:5001
+        - name: PORT
+          value: "80"
+      resources:
+        requests:
+          cpu: 0.25
+          memoryInGb: 0.25
+        limits:
+          cpu: 0.5
+          memoryInGb: 0.5
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 80
+        initialDelaySeconds: 30
+        periodSeconds: 30
+        timeoutSeconds: 10
+        failureThreshold: 3
+      readinessProbe:
+        httpGet:
+          path: /health
+          port: 80
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+
+  # IP Address Configuration
+  ipAddress:
+    type: Public
+    ports:
+      - port: 80
+        protocol: TCP
+      - port: 443
+        protocol: TCP
+    dnsNameLabel: irado-chatbot
+
+  # Image Registry Credentials
+  imageRegistryCredentials:
+    - server: irado.azurecr.io
+      username: irado
+      password: irado-acr-password
+
+  # Storage Configuration
+  volumes:
+    - name: logs
+      azureFile:
+        shareName: logs
+        storageAccountName: iradostorage
+        storageAccountKey: irado-storage-key
+    - name: backups
+      azureFile:
+        shareName: backups
+        storageAccountName: iradostorage
+        storageAccountKey: irado-storage-key
+
+  # Tags
+  tags:
+    Environment: Production
+    Application: Irado-Chatbot
+    Version: 1.0.0

@@ -1,0 +1,240 @@
+openapi: 3.0.3
+info:
+  title: Irado Chatbot API (Cloudflare)
+  description: |
+    Cloudflare-optimierte API für den Irado Chatbot.
+    Diese API ist für die Verwendung mit Cloudflare Workers und Pages Functions optimiert.
+  version: 1.0.0
+  contact:
+    name: Irado Support
+    email: irado@mainfact.ai
+servers:
+  - url: https://irado.mainfact.ai/api
+    description: Cloudflare Production
+  - url: https://irado-chatbot.pages.dev/api
+    description: Cloudflare Pages
+paths:
+  /chat:
+    post:
+      summary: Chatbot Conversation (Cloudflare)
+      description: |
+        Cloudflare-optimierte Chatbot API mit CORS-Unterstützung und Edge-Caching.
+        Unterstützt Cloudflare Workers und Pages Functions.
+      operationId: sendChatMessageCloudflare
+      tags:
+        - Chat
+      security:
+        - CloudflareAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Erfolgreiche Antwort
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+                example: "*"
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+                example: "POST, OPTIONS"
+            Cache-Control:
+              schema:
+                type: string
+                example: "public, max-age=300"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate Limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    options:
+      summary: CORS Preflight
+      description: CORS Preflight für Cloudflare
+      operationId: chatOptions
+      tags:
+        - Chat
+      responses:
+        '200':
+          description: CORS Preflight erfolgreich
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+                example: "*"
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+                example: "POST, OPTIONS"
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+                example: "Content-Type, Authorization"
+            Access-Control-Max-Age:
+              schema:
+                type: string
+                example: "86400"
+  /health:
+    get:
+      summary: Health Check (Cloudflare)
+      description: Cloudflare Health Check mit Edge-Caching
+      operationId: healthCheckCloudflare
+      tags:
+        - System
+      responses:
+        '200':
+          description: Service gesund
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: "public, max-age=60"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  cloudflare:
+                    type: object
+                    properties:
+                      region:
+                        type: string
+                        example: "FRA"
+                      datacenter:
+                        type: string
+                        example: "fra1"
+components:
+  securitySchemes:
+    CloudflareAuth:
+      type: http
+      scheme: basic
+      description: |
+        Cloudflare Basic Authentication.
+        Für Cloudflare Workers verwenden Sie die CF-Access-Authentifizierung.
+    CloudflareAccess:
+      type: http
+      scheme: bearer
+      bearerFormat: CF-Access
+      description: |
+        Cloudflare Access Token für sichere API-Zugriffe.
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - sessionId
+        - action
+        - chatInput
+      properties:
+        sessionId:
+          type: string
+          description: Session-ID für Cloudflare Edge-Caching
+          example: "user_123_session_456"
+        action:
+          type: string
+          enum: [sendMessage]
+          example: "sendMessage"
+        chatInput:
+          type: string
+          description: Benutzerfrage
+          example: "Wann wird mein Grofvuil abgeholt?"
+        timestamp:
+          type: integer
+          format: int64
+          example: 1758999557888
+        source:
+          type: string
+          example: "website"
+        cloudflare:
+          type: object
+          properties:
+            region:
+              type: string
+              example: "FRA"
+            datacenter:
+              type: string
+              example: "fra1"
+    ChatResponse:
+      type: object
+      required:
+        - output
+      properties:
+        output:
+          type: string
+          description: Chatbot-Antwort
+          example: "Grofvuil wird alle 2 Wochen abgeholt. Sie können Ihren nächsten Termin in der Abfallkalender-App nachschauen."
+        metadata:
+          type: object
+          properties:
+            processing_time:
+              type: number
+              example: 1.234
+            model:
+              type: string
+              example: "gpt-4"
+            cloudflare:
+              type: object
+              properties:
+                region:
+                  type: string
+                  example: "FRA"
+                cache_status:
+                  type: string
+                  example: "MISS"
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: "Invalid request format"
+        code:
+          type: string
+          example: "INVALID_REQUEST"
+        timestamp:
+          type: string
+          format: date-time
+        request_id:
+          type: string
+          example: "req_123456789"
+tags:
+  - name: Chat
+    description: Chatbot-API für Cloudflare
+  - name: System
+    description: System-Status für Cloudflare
+externalDocs:
+  description: Irado Website
+  url: https://www.irado.nl

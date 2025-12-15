@@ -1,0 +1,66 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║                                                                      ║
+║               IRADO GROFVUIL CHATBOT PROJECT                        ║
+║                   🤖 START HIER 🤖                                   ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+📚 COMPLETE DOCUMENTATIE: README_DOCUMENTATIE.md
+
+
+🚀 QUICK START:
+
+   Voor NIEUWE Azure setup:
+   ------------------------
+   1. Open: AZURE_QUICKSTART.md
+   2. Follow 5-minute setup
+   3. Run: ./deploy-to-azure.sh
+   4. Run: ./deploy-dashboard-to-azure.sh
+
+
+   Voor UPDATES/CHANGES:
+   ---------------------
+   1. Edit files in /opt/irado/chatbot/
+   2. Run: ./quick-deploy.sh
+   3. Test: curl https://irado-chatbot-app.azurewebsites.net/health
+
+
+   Voor CSV UPLOAD:
+   ----------------
+   1. Open: https://irado-dashboard-app.azurewebsites.net
+   2. Tab: Bedrijfsklanten
+   3. Upload: /opt/irado/chatbot/koad.csv
+   4. Check: Logs tab → Dashboard Activity Logs
+
+
+💰 KOSTEN OVERZICHT:
+
+   Standaard: €58.53/maand  (IRADO_INFRASTRUCTUUR_VOORSTEL.md)
+   Premium:   €119.13/maand (IRADO_INFRASTRUCTUUR_PREMIUM.md)
+
+
+🌐 LIVE URLS:
+
+   Chatbot:   https://irado-chatbot-app.azurewebsites.net
+   Dashboard: https://irado-dashboard-app.azurewebsites.net
+
+
+📖 BELANGRIJKSTE DOCUMENTEN:
+
+   ⚡ AZURE_QUICKSTART.md              - 5 min Azure setup
+   📚 README_DOCUMENTATIE.md           - Complete overzicht
+   💰 IRADO_INFRASTRUCTUUR_VOORSTEL.md - Kosten breakdown
+   🔧 AZURE_ACCOUNT_SETUP.md           - Volledige Azure setup
+   📊 DASHBOARD_LOGGING_COMPLETE.md    - Dashboard logging
+   💾 DATABASE_MIGRATION_COMPLETE.md   - Database info
+
+
+🆘 HULP NODIG?
+
+   - Check README_DOCUMENTATIE.md voor document index
+   - Check specific *.md files voor details
+   - Azure Portal: https://portal.azure.com
+
+
+✅ STATUS: Production Ready!
+

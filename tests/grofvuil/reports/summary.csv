@@ -1,0 +1,41 @@
+test_num,session_id,timestamp,question,response_path
+1,1bae3cdf-5943-4633-b4c2-b1b3e2589a10,20250914_065425,"Welke soorten grofvuil mag ik aanbieden volgens de aanbiedregels?",/opt/irado/tests/grofvuil/reports/response_1_20250914_065425.json
+2,0565211e-e390-4f2b-baac-8a13e59f7322,20250914_065427,"Moet ik per afvalsoort een aparte grofvuilafspraak maken?",/opt/irado/tests/grofvuil/reports/response_2_20250914_065427.json
+3,0c94cae5-d6b4-4bdb-90f4-50bc4d27f8e3,20250914_065431,"Op welke tijden wordt grofvuil opgehaald op de afhaaldag?",/opt/irado/tests/grofvuil/reports/response_3_20250914_065431.json
+4,86c3801a-e4e3-4402-9142-b94dbbb36db5,20250914_065433,"Tussen welke tijden moet ik het grofvuil buiten zetten?",/opt/irado/tests/grofvuil/reports/response_4_20250914_065433.json
+5,cda9e037-9c73-4a0a-9623-f54af5568f99,20250914_065435,"Moet ik thuis blijven voor de grofvuilophaalafspraak?",/opt/irado/tests/grofvuil/reports/response_5_20250914_065435.json
+6,2edd3f80-c18c-4351-b38d-ed37a5cae41c,20250914_065437,"Waar moet ik het grofvuil precies neerzetten op de ophaaldag?",/opt/irado/tests/grofvuil/reports/response_6_20250914_065437.json
+7,03ab75c6-7af5-4ee2-bc67-43e7aab46899,20250914_065440,"Mag ik grofvuil op de stoep of op mijn eigen erf neerzetten?",/opt/irado/tests/grofvuil/reports/response_7_20250914_065440.json
+8,dfa96e3a-ed3f-45b4-b438-1cfbbb75c398,20250914_065442,"Mag grofvuil tegen een boom of lantaarnpaal geplaatst worden?",/opt/irado/tests/grofvuil/reports/response_8_20250914_065442.json
+9,f52be153-3153-4c32-a0cf-f8cba758fd24,20250914_065444,"Wat zijn de maximale afmetingen voor grofvuil huisraad?",/opt/irado/tests/grofvuil/reports/response_9_20250914_065444.json
+10,08a860a3-e9d7-4edb-8305-88d28337ee98,20250914_065446,"Wat is het maximale gewicht per stuk grofvuil?",/opt/irado/tests/grofvuil/reports/response_10_20250914_065446.json
+11,24015d8b-9786-47f6-8ef4-f3aaa08d7de0,20250914_065449,"Hoe moet ik kleine stukken grofvuil aanbieden?",/opt/irado/tests/grofvuil/reports/response_11_20250914_065449.json
+12,84076641-6f9d-42fd-8f01-a4b60fa96c30,20250914_065451,"Hoe bied ik losse artikelen aan die niet gebundeld kunnen worden?",/opt/irado/tests/grofvuil/reports/response_12_20250914_065451.json
+13,4eb22b6e-c39a-4828-bc81-d37e949acd94,20250914_065453,"Wat moet ik doen met glasplaten voordat ik ze aanbied?",/opt/irado/tests/grofvuil/reports/response_13_20250914_065453.json
+14,7f5034af-8cc1-4970-ac8d-835d8f58160d,20250914_065455,"Mogen meubels en matrassen afwijken van de maximale lengte en breedte?",/opt/irado/tests/grofvuil/reports/response_14_20250914_065455.json
+15,67438fb9-ea5e-4c45-9136-7451be6163db,20250914_065458,"Moet ik voor matrassen in Schiedam en Vlaardingen een aparte afspraak maken?",/opt/irado/tests/grofvuil/reports/response_15_20250914_065458.json
+16,8902595d-f465-4d7b-886a-5ce95a96dd4f,20250914_065500,"Mogen alleen droge matrassen worden aangeboden?",/opt/irado/tests/grofvuil/reports/response_16_20250914_065500.json
+17,dc3378c0-af47-459d-8fc2-0d067b7d3c41,20250914_065502,"Hoort een boxspringonderstel bij de matrassenroute?",/opt/irado/tests/grofvuil/reports/response_17_20250914_065502.json
+18,7b863868-fe39-46ed-9e3b-5e641d86966c,20250914_065504,"Mag ik een fiets als grofvuil aanbieden en moet deze van het slot?",/opt/irado/tests/grofvuil/reports/response_18_20250914_065504.json
+19,abe8c9f3-d1b9-4620-aaf0-07b546d629c9,20250914_065506,"Noem voorbeelden van ijzer dat als grofvuil mag worden aangeboden.",/opt/irado/tests/grofvuil/reports/response_19_20250914_065506.json
+20,201554f4-bdf7-4850-8d54-4316c8891636,20250914_065508,"Noem voorbeelden van elektrische apparaten die als grofvuil mogen.",/opt/irado/tests/grofvuil/reports/response_20_20250914_065508.json
+21,dfc46944-6f89-4948-b1ea-019bce39310e,20250914_065511,"Wat is de maximale lengte voor zonwering (markies/uitvalscherm) die wordt meegenomen?",/opt/irado/tests/grofvuil/reports/response_21_20250914_065511.json
+22,ce9e46dc-50b9-441e-b608-e32c2dbdae16,20250914_065513,"Wat is de maximale lengte voor radiatoren die worden meegenomen?",/opt/irado/tests/grofvuil/reports/response_22_20250914_065513.json
+23,dbc8052b-f34b-4173-b58f-e661b0adcbea,20250914_065515,"Hoe moet ik grof tuinafval/snoeiafval aanbieden?",/opt/irado/tests/grofvuil/reports/response_23_20250914_065515.json
+24,68097a1f-ed99-41e5-a8e3-ec43ac90b6b7,20250914_065517,"Mogen boomstronken en takken langer dan 50 cm of dikker dan 25 cm zijn?",/opt/irado/tests/grofvuil/reports/response_24_20250914_065517.json
+25,d1e2106a-fe01-4479-b8d5-285a76eb8e7c,20250914_065519,"Mag ik snoeiafval in dozen of zakken aanbieden?",/opt/irado/tests/grofvuil/reports/response_25_20250914_065519.json
+26,f9ea48ef-724e-4933-9b2d-8210083b144a,20250914_065521,"Mag ik gipsplaten, puin of steen als grofvuil aanbieden?",/opt/irado/tests/grofvuil/reports/response_26_20250914_065521.json
+27,3832b4e0-d0c6-412e-9de5-696c0f2a9062,20250914_065524,"Wat moet ik doen met afval van verbouwing, renovatie of sloop?",/opt/irado/tests/grofvuil/reports/response_27_20250914_065524.json
+28,8c2c61ca-afc6-4175-b6e6-57828f6b69d3,20250914_065526,"Mag klein chemisch afval (zoals verf of tl-buizen) bij het grofvuil?",/opt/irado/tests/grofvuil/reports/response_28_20250914_065526.json
+29,6d69a463-f209-41b5-b486-b45a22012070,20250914_065529,"Mag asbest als grofvuil worden aangeboden?",/opt/irado/tests/grofvuil/reports/response_29_20250914_065529.json
+30,0ebdb9b0-4dfd-4207-b138-d925a22a7e39,20250914_065531,"Mag ik autobanden, brommers of scooters als grofvuil meegeven?",/opt/irado/tests/grofvuil/reports/response_30_20250914_065531.json
+31,72ba277d-32ef-4ccb-a298-3dfe5243887c,20250914_065533,"Mag ik bloembakken of parasolvoeten van beton aanbieden als grofvuil?",/opt/irado/tests/grofvuil/reports/response_31_20250914_065533.json
+32,d87ce509-a138-4540-8457-23c258a870c8,20250914_065535,"Mag ik dakpannen, dakshingles, golfplaten of regenpijpen aanbieden?",/opt/irado/tests/grofvuil/reports/response_32_20250914_065535.json
+33,ba3d66b5-5bb5-44d0-82b7-dc0b2f08bac4,20250914_065537,"Hoort tuinafval zoals graszoden, zand, aarde of grond bij het grofvuil?",/opt/irado/tests/grofvuil/reports/response_33_20250914_065537.json
+34,0f6b0342-4741-4b48-9087-bffda22b0250,20250914_065539,"Mag ik satellietschotels als grofvuil aanbieden?",/opt/irado/tests/grofvuil/reports/response_34_20250914_065539.json
+35,609b15d9-af41-4792-8167-ebfd7a912e3b,20250914_065542,"Mag bedrijfsafval worden aangeboden als grofvuil?",/opt/irado/tests/grofvuil/reports/response_35_20250914_065542.json
+36,59606878-bada-4019-8427-bd5061b1903a,20250914_065544,"Welke houtsoorten uit de tuin mogen als grofvuil worden aangeboden?",/opt/irado/tests/grofvuil/reports/response_36_20250914_065544.json
+37,70163c7e-0005-4e26-9b10-2cf0e7c31d8d,20250914_065546,"Mogen deuren, ruiten en raamkozijnen als grofvuil worden aangeboden?",/opt/irado/tests/grofvuil/reports/response_37_20250914_065546.json
+38,ebad79fe-3af9-410a-995a-50fe946fdd1e,20250914_065548,"Wat zijn voorbeelden van losse spullen uit of om de woning die als grofvuil mogen?",/opt/irado/tests/grofvuil/reports/response_38_20250914_065548.json
+39,5fdf88fc-a58b-4810-b44f-755bbaf2baed,20250914_065550,"Hoeveel grofvuil mag ik maximaal aanbieden per afspraak?",/opt/irado/tests/grofvuil/reports/response_39_20250914_065550.json
+40,a2872fd2-8688-42c0-8189-c7d3ff068a98,20250914_065552,"Kunnen jullie vooraf een exact tijdstip geven waarop jullie langskomen?",/opt/irado/tests/grofvuil/reports/response_40_20250914_065552.json

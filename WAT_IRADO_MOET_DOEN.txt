@@ -1,0 +1,76 @@
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                  ║
+║          WAT MOET IRADO DOEN VOOR AZURE TOEGANG?               ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+📧 JE HEBT NODIG VAN IRADO:
+   Een email adres waarmee je in Azure kunt inloggen
+
+
+✅ IRADO MOET DIT DOEN (5 minuten):
+
+   1. Login op: https://portal.azure.com
+      Met: mainfact@irado.nl (of ander Irado account)
+
+   2. Zoek: "Subscriptions" (in search bar)
+
+   3. Klik: Op hun subscription naam
+
+   4. Klik: "Access control (IAM)" (in left menu)
+
+   5. Klik: "+ Add" → "Add role assignment"
+
+   6. Selecteer:
+      - Role: "Contributor"
+      - Member: JOUW EMAIL ADRES
+
+   7. Als je nog niet bestaat:
+      - Klik "Invite external user"
+      - Vul JOUW EMAIL in
+
+   8. Klik: "Review + assign"
+
+
+✅ DAN KRIJG JIJ:
+   - Email met invite link
+   - Na accepteren: Toegang tot Irado's Azure
+
+✅ DAN KUN JIJ:
+   az login --use-device-code
+   # → Login met jouw email
+   
+   ./deploy-to-azure.sh
+   # → Deploy alles!
+
+
+📋 WELKE ROLE: "Contributor"
+   - Kan: Resources aanmaken/beheren/deployen ✅
+   - Kan NIET: Users beheren (hoeft ook niet)
+
+
+⏱️  TOTAL TIJD: 5 minuten
+💰 KOSTEN VOOR IRADO: €0 (gebruiker toevoegen is gratis)
+
+
+📖 VOLLEDIGE DOCS: AZURE_TOEGANG_VOOR_DEVELOPER.md
+
+
+═══════════════════════════════════════════════════════════════════
+
+ALTERNATIVE: Service Principal (voor volledig geautomatiseerd)
+
+Als Irado geen guest user wil maar een "bot account":
+
+   Irado moet runnen (na az login):
+   
+   az ad sp create-for-rbac \
+     --name "external-developer-bot" \
+     --role Contributor \
+     --scopes /subscriptions/$(az account show --query id -o tsv)
+
+   Output sturen naar jou (appId, password, tenant)
+   
+   Dan kun jij inloggen ZONDER browser!
+
+═══════════════════════════════════════════════════════════════════

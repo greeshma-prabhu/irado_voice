@@ -1,0 +1,316 @@
+# Cloudflare Analytics Konfiguration für Irado Chatbot API
+# Optimiert für detailliertes Monitoring und Alerting
+
+analytics:
+  # Cloudflare Web Analytics
+  web_analytics:
+    enabled: true
+    domains:
+      - "irado.mainfact.ai"
+      - "*.irado.mainfact.ai"
+    
+  # Custom Events für Chatbot-spezifische Metriken
+  custom_events:
+    - name: "chatbot_request"
+      description: "Chatbot API Request"
+      fields:
+        - session_id: "string"
+        - user_input_length: "number"
+        - processing_time: "number"
+        - response_length: "number"
+        - region: "string"
+        - country: "string"
+    
+    - name: "chatbot_error"
+      description: "Chatbot API Error"
+      fields:
+        - error_type: "string"
+        - error_message: "string"
+        - session_id: "string"
+        - region: "string"
+        - processing_time: "number"
+    
+    - name: "rate_limit_hit"
+      description: "Rate Limit Exceeded"
+      fields:
+        - session_id: "string"
+        - current_requests: "number"
+        - limit: "number"
+        - region: "string"
+
+# Cloudflare Logs
+logs:
+  # HTTP Request Logs
+  http_requests:
+    enabled: true
+    fields:
+      - timestamp
+      - method
+      - uri
+      - status_code
+      - response_time
+      - ray_id
+      - client_ip
+      - country
+      - region
+      - datacenter
+      - user_agent
+      - request_size
+      - response_size
+    
+  # Custom Logs für Chatbot
+  chatbot_logs:
+    enabled: true
+    fields:
+      - timestamp
+      - session_id
+      - user_input
+      - response_output
+      - processing_time
+      - backend_time
+      - region
+      - error_type
+      - rate_limit_status
+
+# Cloudflare Alerts
+alerts:
+  # Performance Alerts
+  performance:
+    - name: "high_response_time"
+      condition: "response_time > 5000"
+      threshold: "5 seconds"
+      action: "email"
+      recipients: ["irado@mainfact.ai"]
+    
+    - name: "high_error_rate"
+      condition: "error_rate > 5%"
+      threshold: "5%"
+      action: "email"
+      recipients: ["irado@mainfact.ai"]
+  
+  # Rate Limiting Alerts
+  rate_limiting:
+    - name: "rate_limit_spike"
+      condition: "rate_limit_hits > 100/hour"
+      threshold: "100 hits per hour"
+      action: "email"
+      recipients: ["irado@mainfact.ai"]
+  
+  # Backend Alerts
+  backend:
+    - name: "backend_down"
+      condition: "backend_errors > 10/minute"
+      threshold: "10 errors per minute"
+      action: "email"
+      recipients: ["irado@mainfact.ai"]
+
+# Cloudflare Dashboard Widgets
+dashboard:
+  widgets:
+    - name: "Request Volume"
+      type: "line_chart"
+      metric: "requests_per_minute"
+      time_range: "24h"
+    
+    - name: "Response Time"
+      type: "line_chart"
+      metric: "avg_response_time"
+      time_range: "24h"
+    
+    - name: "Error Rate"
+      type: "gauge"
+      metric: "error_percentage"
+      time_range: "1h"
+    
+    - name: "Geographic Distribution"
+      type: "map"
+      metric: "requests_by_country"
+      time_range: "24h"
+    
+    - name: "Top User Inputs"
+      type: "table"
+      metric: "top_user_inputs"
+      time_range: "24h"
+    
+    - name: "Rate Limit Status"
+      type: "gauge"
+      metric: "rate_limit_hits"
+      time_range: "1h"
+
+# Cloudflare Workers Analytics
+workers_analytics:
+  enabled: true
+  metrics:
+    - cpu_time
+    - memory_usage
+    - request_count
+    - error_count
+    - duration
+    - subrequests
+  
+  # Custom Metrics für Chatbot
+  custom_metrics:
+    - name: "chatbot_sessions"
+      description: "Active chatbot sessions"
+      type: "counter"
+    
+    - name: "chatbot_responses"
+      description: "Total chatbot responses"
+      type: "counter"
+    
+    - name: "chatbot_processing_time"
+      description: "Average processing time"
+      type: "histogram"
+      buckets: [100, 500, 1000, 2000, 5000]
+    
+    - name: "chatbot_backend_time"
+      description: "Backend API response time"
+      type: "histogram"
+      buckets: [50, 100, 200, 500, 1000]
+
+# Cloudflare KV Analytics
+kv_analytics:
+  enabled: true
+  metrics:
+    - read_operations
+    - write_operations
+    - delete_operations
+    - storage_usage
+    - key_count
+  
+  # Rate Limiting Metrics
+  rate_limiting:
+    - name: "rate_limit_checks"
+      description: "Rate limit check operations"
+      type: "counter"
+    
+    - name: "rate_limit_hits"
+      description: "Rate limit exceeded events"
+      type: "counter"
+    
+    - name: "rate_limit_resets"
+      description: "Rate limit reset operations"
+      type: "counter"
+
+# Cloudflare R2 Analytics (für Logs)
+r2_analytics:
+  enabled: true
+  metrics:
+    - storage_usage
+    - request_count
+    - bandwidth
+    - operations
+  
+  # Log Storage Metrics
+  log_storage:
+    - name: "log_uploads"
+      description: "Log file uploads"
+      type: "counter"
+    
+    - name: "log_storage_size"
+      description: "Total log storage size"
+      type: "gauge"
+    
+    - name: "log_retention"
+      description: "Log retention period"
+      type: "gauge"
+
+# Cloudflare Durable Objects Analytics
+durable_objects_analytics:
+  enabled: true
+  metrics:
+    - object_count
+    - request_count
+    - storage_usage
+    - duration
+  
+  # Session Management Metrics
+  session_management:
+    - name: "active_sessions"
+      description: "Active chatbot sessions"
+      type: "gauge"
+    
+    - name: "session_duration"
+      description: "Average session duration"
+      type: "histogram"
+      buckets: [60, 300, 900, 1800, 3600]
+    
+    - name: "session_creates"
+      description: "New session creations"
+      type: "counter"
+    
+    - name: "session_destroys"
+      description: "Session destructions"
+      type: "counter"
+
+# Cloudflare Cron Analytics
+cron_analytics:
+  enabled: true
+  metrics:
+    - execution_count
+    - success_count
+    - failure_count
+    - duration
+  
+  # Scheduled Tasks für Chatbot
+  scheduled_tasks:
+    - name: "cleanup_old_sessions"
+      description: "Cleanup old chatbot sessions"
+      schedule: "0 */6 * * *"  # Every 6 hours
+    
+    - name: "generate_analytics_report"
+      description: "Generate daily analytics report"
+      schedule: "0 0 * * *"  # Daily at midnight
+    
+    - name: "health_check"
+      description: "System health check"
+      schedule: "*/5 * * * *"  # Every 5 minutes
+
+# Cloudflare Security Analytics
+security_analytics:
+  enabled: true
+  metrics:
+    - blocked_requests
+    - challenge_requests
+    - bot_score
+    - threat_score
+  
+  # Chatbot-spezifische Security
+  chatbot_security:
+    - name: "suspicious_inputs"
+      description: "Potentially malicious user inputs"
+      type: "counter"
+    
+    - name: "session_hijacking_attempts"
+      description: "Session hijacking attempts"
+      type: "counter"
+    
+    - name: "rate_limit_abuse"
+      description: "Rate limit abuse attempts"
+      type: "counter"
+
+# Cloudflare Performance Analytics
+performance_analytics:
+  enabled: true
+  metrics:
+    - cache_hit_ratio
+    - origin_response_time
+    - edge_response_time
+    - bandwidth_saved
+  
+  # Chatbot Performance
+  chatbot_performance:
+    - name: "response_quality_score"
+      description: "AI response quality score"
+      type: "gauge"
+      range: [0, 100]
+    
+    - name: "user_satisfaction"
+      description: "User satisfaction rating"
+      type: "gauge"
+      range: [1, 5]
+    
+    - name: "conversation_completion_rate"
+      description: "Successful conversation completion rate"
+      type: "gauge"
+      range: [0, 100]

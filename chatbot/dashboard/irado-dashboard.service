@@ -1,0 +1,23 @@
+[Unit]
+Description=Irado Chatbot Dashboard
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/irado/chatbot/dashboard
+ExecStart=/opt/irado/chatbot/dashboard/venv/bin/python /opt/irado/chatbot/dashboard/start_dashboard.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=irado-dashboard
+
+# Environment variables
+Environment=PYTHONPATH=/opt/irado/chatbot
+Environment=FLASK_ENV=production
+
+[Install]
+WantedBy=multi-user.target

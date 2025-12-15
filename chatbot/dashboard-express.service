@@ -1,0 +1,26 @@
+[Unit]
+Description=Irado Dashboard Express Server
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/irado/chatbot
+ExecStart=/usr/bin/node /opt/irado/chatbot/dashboard_server.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dashboard-express
+
+# Environment variables
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+

@@ -1,0 +1,49 @@
+name = "irado-chatbot-api"
+main = "cloudflare-worker.js"
+compatibility_date = "2025-09-27"
+compatibility_flags = ["nodejs_compat"]
+
+[env.production]
+name = "irado-chatbot-api"
+route = "irado.mainfact.ai/api/*"
+
+[env.staging]
+name = "irado-chatbot-api-staging"
+route = "staging.irado.mainfact.ai/api/*"
+
+# Environment Variables
+[vars]
+BACKEND_URL = "http://localhost:5000/webhook/chat"
+API_VERSION = "1.0.0"
+
+# KV Namespaces für Rate Limiting
+[[kv_namespaces]]
+binding = "CHATBOT_KV"
+id = "your-kv-namespace-id"
+preview_id = "your-preview-kv-namespace-id"
+
+# Durable Objects (optional für Session Management)
+[[durable_objects.bindings]]
+name = "CHATBOT_SESSIONS"
+class_name = "ChatbotSessions"
+
+# R2 Buckets (optional für Logs)
+[[r2_buckets]]
+binding = "CHATBOT_LOGS"
+bucket_name = "irado-chatbot-logs"
+
+# Cron Jobs
+[[triggers]]
+crons = ["0 */6 * * *"]  # Alle 6 Stunden
+
+# Limits
+[limits]
+cpu_ms = 50000  # 50 Sekunden CPU-Zeit
+
+# Analytics
+[analytics]
+enabled = true
+
+# Logging
+[logging]
+level = "info"

@@ -1,0 +1,10 @@
+HTTP/2 200 
+server: openresty
+date: Sun, 14 Sep 2025 06:54:59 GMT
+content-type: application/json; charset=utf-8
+content-length: 373
+etag: W/"175-L3cC7huIRPeZLykKQyDvP25ns6o"
+vary: Accept-Encoding
+strict-transport-security: max-age=63072000; preload
+x-served-by: n8n.mainfact.ai
+

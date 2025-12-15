@@ -1,0 +1,97 @@
+# Docker Compose Override for Development
+# Local development overrides for Irado Chatbot System
+
+version: '3.8'
+
+services:
+  # Chatbot Service - Development Overrides
+  chatbot:
+    environment:
+      - FLASK_ENV=development
+      - DEBUG=true
+      - RELOAD=true
+    volumes:
+      - ./containers/chatbot:/app
+      - ./chatbot:/app/chatbot
+    ports:
+      - "5000:5000"
+    command: ["python", "app.py"]
+
+  # Dashboard Service - Development Overrides
+  dashboard:
+    environment:
+      - FLASK_ENV=development
+      - DEBUG=true
+      - RELOAD=true
+    volumes:
+      - ./containers/dashboard:/app
+      - ./dashboard:/app/dashboard
+    ports:
+      - "5001:5001"
+    command: ["python", "dashboard.py"]
+
+  # Website Service - Development Overrides
+  website:
+    environment:
+      - NODE_ENV=development
+      - DEBUG=true
+      - WATCH_FILES=true
+    volumes:
+      - ./containers/website:/app
+      - ./website:/app/website
+    ports:
+      - "3254:80"
+    command: ["npm", "run", "dev"]
+
+  # Dashboard Frontend - Development Overrides
+  dashboard-frontend:
+    environment:
+      - NODE_ENV=development
+      - DEBUG=true
+      - WATCH_FILES=true
+    volumes:
+      - ./containers/dashboard-frontend:/app
+      - ./dashboard:/app/dashboard
+    ports:
+      - "3256:80"
+    command: ["npm", "run", "dev"]
+
+  # PostgreSQL Chat - Development Overrides
+  postgres-chat:
+    environment:
+      - POSTGRES_DB=irado_chat
+      - POSTGRES_USER=irado
+      - POSTGRES_PASSWORD=irado123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_chat_data:/var/lib/postgresql/data
+      - ./database_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+
+  # PostgreSQL Bedrijfsklanten - Development Overrides
+  postgres-bedrijfsklanten:
+    environment:
+      - POSTGRES_DB=irado_bedrijfsklanten
+      - POSTGRES_USER=irado
+      - POSTGRES_PASSWORD=irado123
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_bedrijfsklanten_data:/var/lib/postgresql/data
+      - ./database_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+
+  # Redis - Development Overrides
+  redis:
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # Nginx - Development Overrides
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl

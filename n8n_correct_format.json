@@ -1,0 +1,67 @@
+[
+  {
+    "json": {
+      "pageContent": "Het meeste afval kan worden hergebruikt. Eigenlijk hebben we het niet meer over afval, maar over grondstoffen. Bijna alle afvalsoorten kunnen worden hergebruikt als grondstof voor nieuwe producten. Zoals verpakkingen van glas, oud papier en textiel en gft. Door je afval goed te scheiden draag je bij een schoon milieu en een prettig leefklimaat.",
+      "metadata": {
+        "type": "faq",
+        "category": "afvalsoorten",
+        "url": "https://www.irado.nl/afvalsoorten",
+        "title": "Afvalsoorten - Irado",
+        "question": "Waar laat ik mijn afval?",
+        "answer_length": 991
+      }
+    }
+  },
+  {
+    "json": {
+      "pageContent": "BigBags kosten €15 per stuk. Je kunt ze bestellen via de website of telefonisch. BigBags zijn handig voor grote hoeveelheden afval zoals puin, gipsplaten of steen.",
+      "metadata": {
+        "type": "faq",
+        "category": "afvalsoorten",
+        "url": "https://www.irado.nl/afvalsoorten/bigbag",
+        "title": "BigBag - Irado",
+        "question": "Wat kosten BigBags?",
+        "answer_length": 156
+      }
+    }
+  },
+  {
+    "json": {
+      "pageContent": "Als je milieupas kapot is, kun je een nieuwe aanvragen via de website of telefonisch. Er zijn kosten verbonden aan het vervangen van een kapotte milieupas. Neem contact op met de klantenservice voor meer informatie.",
+      "metadata": {
+        "type": "faq",
+        "category": "milieupas",
+        "url": "https://www.irado.nl/milieupas",
+        "title": "Milieupas - Irado",
+        "question": "Wat moet ik doen als mijn milieupas kapot is?",
+        "answer_length": 234
+      }
+    }
+  },
+  {
+    "json": {
+      "pageContent": "Je kunt een grofvuilafspraak maken via de website of telefonisch. Maak per afvalsoort een aparte afspraak. De kosten zijn afhankelijk van de gemeente en het type afval.",
+      "metadata": {
+        "type": "faq",
+        "category": "grofvuil",
+        "url": "https://www.irado.nl/afvalsoorten/grofvuil",
+        "title": "Grofvuil - Irado",
+        "question": "Hoe maak ik een grofvuilafspraak?",
+        "answer_length": 189
+      }
+    }
+  },
+  {
+    "json": {
+      "pageContent": "Je mag geen huisvuil, bouwafval, klein chemisch afval, asbest, autobanden, brommers of bedrijfsafval aanbieden als grofvuil. Breng dit zelf naar de milieustraat.",
+      "metadata": {
+        "type": "faq",
+        "category": "grofvuil",
+        "url": "https://www.irado.nl/afvalsoorten/grofvuil",
+        "title": "Grofvuil regels - Irado",
+        "question": "Wat mag je niet aanbieden als grofvuil?",
+        "answer_length": 145
+      }
+    }
+  }
+]
