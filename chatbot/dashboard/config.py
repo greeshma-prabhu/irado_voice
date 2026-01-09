@@ -110,8 +110,8 @@ class Config:
     """Dashboard configuration object populated from environment variables."""
 
     # Azure OpenAI Configuration
-    AZURE_OPENAI_API_KEY = os.getenv('AZURE_OPENAI_API_KEY', 'BXFgQF9udVZRqyhvapyyKmaO5MxXH5CUZb2Xf992rD99al4C4zyKJQQJ99BJACfhMk5XJ3w3AAAAACOGL8rA')
-    AZURE_OPENAI_ENDPOINT = os.getenv('AZURE_OPENAI_ENDPOINT', 'https://info-mgal213r-swedencentral.cognitiveservices.azure.com')
+    AZURE_OPENAI_API_KEY = os.getenv('AZURE_OPENAI_API_KEY')
+    AZURE_OPENAI_ENDPOINT = os.getenv('AZURE_OPENAI_ENDPOINT')
     AZURE_OPENAI_DEPLOYMENT = os.getenv('AZURE_OPENAI_DEPLOYMENT', 'gpt-4o')
     AZURE_OPENAI_API_VERSION = os.getenv('AZURE_OPENAI_API_VERSION', '2025-01-01-preview')
     OPENAI_TEMPERATURE = 1.0
@@ -157,7 +157,7 @@ class Config:
 
     # Chat Configuration
     CHAT_BASIC_AUTH_USER = os.getenv('CHAT_BASIC_AUTH_USER', 'irado')
-    CHAT_BASIC_AUTH_PASSWORD = os.getenv('CHAT_BASIC_AUTH_PASSWORD', '20Irado25!')
+    CHAT_BASIC_AUTH_PASSWORD = os.getenv('CHAT_BASIC_AUTH_PASSWORD')
 
     # Allowed municipalities
     ALLOWED_MUNICIPALITIES = ['Vlaardingen', 'Capelle aan den IJssel', 'Schiedam']

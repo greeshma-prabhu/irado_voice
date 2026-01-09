@@ -25,6 +25,21 @@
    3. Test: curl https://irado-chatbot-app.azurewebsites.net/health
 
 
+💾 BACKUP DATABASE (AANBEVOLEN vóór grote wijzigingen / troubleshooting):
+
+   1. Login (eenmalig per sessie):
+      az login
+
+   2. Run database backup script (maakt lokale dumps + tar archive in ./backups/):
+      cd /opt/irado-azure
+      ./mainfact-azure-backup.sh
+
+   Output files (voorbeeld):
+      /opt/irado-azure/backups/irado_chat-YYYYMMDD-HHMMSS.sql
+      /opt/irado-azure/backups/irado_chat-YYYYMMDD-HHMMSS.dump
+      /opt/irado-azure/backups/irado-backup-YYYYMMDD-HHMMSS.tar.gz
+
+
    Voor CSV UPLOAD:
    ----------------
    1. Open: https://irado-dashboard-app.azurewebsites.net

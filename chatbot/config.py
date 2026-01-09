@@ -104,10 +104,11 @@ def _build_database_url(user: str | None, password: str | None, host: str | None
 class Config:
     """Base configuration class"""
 
-    AZURE_OPENAI_API_KEY = os.getenv('AZURE_OPENAI_API_KEY', 'BXFgQF9udVZRqyhvapyyKmaO5MxXH5CUZb2Xf992rD99al4C4zyKJQQJ99BJACfhMk5XJ3w3AAAAACOGL8rA')
-    AZURE_OPENAI_ENDPOINT = os.getenv('AZURE_OPENAI_ENDPOINT', 'https://info-mgal213r-swedencentral.cognitiveservices.azure.com')
-    AZURE_OPENAI_DEPLOYMENT = os.getenv('AZURE_OPENAI_DEPLOYMENT', 'gpt-5-mini')
-    AZURE_OPENAI_API_VERSION = os.getenv('AZURE_OPENAI_API_VERSION', '2025-04-01-preview')
+    # Secrets must come from environment (local .env or Azure App Settings).
+    AZURE_OPENAI_API_KEY = os.getenv('AZURE_OPENAI_API_KEY')
+    AZURE_OPENAI_ENDPOINT = os.getenv('AZURE_OPENAI_ENDPOINT')
+    AZURE_OPENAI_DEPLOYMENT = os.getenv('AZURE_OPENAI_DEPLOYMENT', 'gpt-4o')
+    AZURE_OPENAI_API_VERSION = os.getenv('AZURE_OPENAI_API_VERSION', '2025-01-01-preview')
     OPENAI_TEMPERATURE = 1.0
     OPENAI_MAX_TOKENS = 2000
 
@@ -145,7 +146,7 @@ class Config:
     DEBUG = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
 
     CHAT_BASIC_AUTH_USER = os.getenv('CHAT_BASIC_AUTH_USER', 'irado')
-    CHAT_BASIC_AUTH_PASSWORD = os.getenv('CHAT_BASIC_AUTH_PASSWORD', '20Irado25!')
+    CHAT_BASIC_AUTH_PASSWORD = os.getenv('CHAT_BASIC_AUTH_PASSWORD')
 
     ALLOWED_MUNICIPALITIES = ['Vlaardingen', 'Capelle aan den IJssel', 'Schiedam']
 

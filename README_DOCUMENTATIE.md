@@ -39,6 +39,31 @@
   - Troubleshooting
   - ⏱️ Leestijd: 10 min
 
+### Database Backups (aanbevolen)
+- **Backup script**: `mainfact-azure-backup.sh`
+  - Maakt **PostgreSQL dumps** (`.sql` + `.dump`) en een **tar.gz archive** met:
+    - DB dumps
+    - `VERSION.txt`
+    - `chatbot/koad.csv`
+    - `chatbot/prompts/system_prompt.txt`
+    - `data/`
+  - Slaat alles **lokaal** op in: `./backups/`
+  - Vereist: `az login`, `pg_dump`, `psql`, `tar`, `curl`
+
+**Gebruik (lokaal op deze server):**
+```bash
+cd /opt/irado-azure
+az login
+./mainfact-azure-backup.sh
+```
+
+**Output (voorbeeld):**
+```bash
+/opt/irado-azure/backups/irado_chat-YYYYMMDD-HHMMSS.sql
+/opt/irado-azure/backups/irado_chat-YYYYMMDD-HHMMSS.dump
+/opt/irado-azure/backups/irado-backup-YYYYMMDD-HHMMSS.tar.gz
+```
+
 ### Dashboard
 - **[DASHBOARD_LOGGING_COMPLETE.md](DASHBOARD_LOGGING_COMPLETE.md)** - Dashboard logging infrastructuur
   - Complete logging service

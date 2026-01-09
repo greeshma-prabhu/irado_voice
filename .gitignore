@@ -13,9 +13,29 @@ yarn-error.log*
 *.tar.gz
 *.tgz
 
+# Local backups / generated artifacts
+/backups/
+/local_backups/
+/tmp_az/
+/tmp_logs/
+
+# Environment / secrets (never commit)
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+.azure-credentials
+
+# Cursor/IDE
+.cursor/
+
 .DS_Store
 
 LogFiles/
 chatbot/chatbot-logs.zip
+
+
+
 
 
