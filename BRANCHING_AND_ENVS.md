@@ -40,6 +40,13 @@ Secrets are **not stored in git**.
 ./scripts/azure-appsettings-export.sh --name irado-dashboard-app --rg irado-rg --out .env.dashboard.prod.local
 ```
 
+### Dev DB password (server-only)
+On this server we keep the dev database password locally in:
+
+- `/opt/irado-azure/.env.dev.local`  *(gitignored)*
+
+The dev deploy scripts (`--env dev`) will auto-load this file if present so fresh deploys do not miss `POSTGRES_PASSWORD`.
+
 ### Next step (implementation)
 We will update deployment scripts to accept `--env dev|prod` (or `ENV=dev|prod`)
 and automatically pick the correct Resource Group + app names.

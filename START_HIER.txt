@@ -21,8 +21,26 @@
    Voor UPDATES/CHANGES:
    ---------------------
    1. Edit files in /opt/irado/chatbot/
-   2. Run: ./quick-deploy.sh
+   2. Run: ./quick-deploy.sh (of scripts hieronder met --env)
    3. Test: curl https://irado-chatbot-app.azurewebsites.net/health
+
+
+🧪 DEV (volledige clone in Azure)
+
+   Dev omgeving:
+   - Chatbot:   https://irado-dev-chatbot-app.azurewebsites.net
+   - Dashboard: https://irado-dev-dashboard-app.azurewebsites.net
+   - Database:  irado-dev-chat-db / irado_dev_chat
+
+   Belangrijk: dev gebruikt een eigen Postgres password. Op deze server bewaren we dat lokaal in:
+      /opt/irado-azure/.env.dev.local   (NIET committen, staat in .gitignore)
+
+   Deploy naar dev:
+      cd /opt/irado-azure
+      ./deploy-to-azure.sh --env dev
+      ./deploy-dashboard-fresh.sh --env dev
+
+   Deze scripts laden automatisch `.env.dev.local` (alleen voor dev) zodat POSTGRES_PASSWORD niet vergeten wordt.
 
 
 💾 BACKUP DATABASE (AANBEVOLEN vóór grote wijzigingen / troubleshooting):

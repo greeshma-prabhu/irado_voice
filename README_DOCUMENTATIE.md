@@ -296,10 +296,39 @@ Azure App Service → Configuration → Application Settings
 
 ### Hoofdscripts:
 ```bash
-./deploy-to-azure.sh              # Chatbot deployment (10-15 min)
-./deploy-dashboard-to-azure.sh    # Dashboard deployment (5 min)
-./quick-deploy.sh                 # Beide tegelijk
+./deploy-to-azure.sh              # Chatbot deployment (prod/dev)
+./deploy-dashboard-fresh.sh       # Dashboard fresh deploy (prod/dev)
+# (legacy) ./deploy-dashboard-to-azure.sh
+# (legacy) ./quick-deploy.sh
 ```
+
+### Omgevingen (prod/dev)
+Er zijn twee volledig gescheiden omgevingen in dezelfde Azure subscription:
+
+- **prod** (bestaande live omgeving)
+  - RG: `irado-rg`
+  - Apps: `irado-chatbot-app`, `irado-dashboard-app`
+  - DB: `irado-chat-db` / `irado_chat`
+- **dev** (oefen-/test omgeving)
+  - RG: `irado-dev-rg`
+  - Apps: `irado-dev-chatbot-app`, `irado-dev-dashboard-app`
+  - DB: `irado-dev-chat-db` / `irado_dev_chat`
+
+Deploy naar dev of prod met `--env`:
+```bash
+./deploy-to-azure.sh --env dev
+./deploy-dashboard-fresh.sh --env dev
+
+./deploy-to-azure.sh --env prod
+./deploy-dashboard-fresh.sh --env prod
+```
+
+### Dev secrets (server-only)
+Op deze server gebruiken we een lokaal bestand (niet in git) om dev DB secrets niet te vergeten:
+
+- `/opt/irado-azure/.env.dev.local` (staat in `.gitignore`)
+
+De deploy scripts laden dit bestand **automatisch** bij `--env dev` als het aanwezig is.
 
 ### Wat doen ze?
 1. **Build** Docker images
