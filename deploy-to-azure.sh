@@ -15,11 +15,16 @@ NC='\033[0m' # No Color
 # Environment selection (prod/dev)
 ENVIRONMENT="prod"
 TAG_ARG=""
+AUTO_YES=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --env)
             ENVIRONMENT="${2:-}"
             shift 2
+            ;;
+        --yes)
+            AUTO_YES=1
+            shift 1
             ;;
         *)
             TAG_ARG="$1"
@@ -95,11 +100,15 @@ echo ""
 echo -e "${YELLOW}🚀 Nieuwe deployment:${NC}"
 echo -e "   $IMAGE_FULL"
 echo ""
-read -p "Doorgaan? (y/n) " -n 1 -r
-echo ""
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "${RED}❌ Deployment geannuleerd${NC}"
-    exit 1
+if [[ "$AUTO_YES" -eq 1 ]]; then
+    echo -e "${GREEN}✅ Auto-confirm enabled (--yes). Continuing...${NC}"
+else
+    read -p "Doorgaan? (y/n) " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${RED}❌ Deployment geannuleerd${NC}"
+        exit 1
+    fi
 fi
 
 # Step 1: Build Docker image
