@@ -73,17 +73,41 @@ buffer_handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
 buffer_handler.setLevel(logging.INFO)
 logging.getLogger().addHandler(buffer_handler)
 
-# CORS - Allow dashboard to access logs
-CORS(app, origins=[
-    'https://irado.mainfact.ai',
-    'http://localhost:8080',
-    'http://127.0.0.1:8080',
-    'http://localhost:3254',
-    'http://127.0.0.1:3254',
-    'http://localhost:3255',
-    'https://irado-chatbot-app.azurewebsites.net',
-    'https://irado-dashboard-app.azurewebsites.net'
-])
+# CORS
+# The chatbot API is called from multiple frontends (website widget, dashboard).
+# If an origin is not listed here, the browser will block the response.
+def _cors_origins() -> list[str]:
+    raw = os.getenv("CORS_ALLOWED_ORIGINS") or os.getenv("CORS_ORIGINS")
+    if raw:
+        return [o.strip() for o in raw.split(",") if o.strip()]
+    # Defaults (safe allowlist). Can be extended via env var above.
+    return [
+        # Production website
+        "https://irado.nl",
+        "https://www.irado.nl",
+        # Mainfact hosted widget (if used)
+        "https://irado.mainfact.ai",
+        # Local dev
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        "http://localhost:3254",
+        "http://127.0.0.1:3254",
+        "http://localhost:3255",
+        # Azure apps (prod + dev)
+        "https://irado-chatbot-app.azurewebsites.net",
+        "https://irado-dashboard-app.azurewebsites.net",
+        "https://irado-dev-chatbot-app.azurewebsites.net",
+        "https://irado-dev-dashboard-app.azurewebsites.net",
+    ]
+
+
+CORS(
+    app,
+    resources={r"/api/*": {"origins": _cors_origins()}},
+    supports_credentials=False,
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "OPTIONS"],
+)
 
 # Rate limiting setup
 limiter = Limiter(
