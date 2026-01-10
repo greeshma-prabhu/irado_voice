@@ -68,13 +68,6 @@ BACKUP_DIR = os.path.join(CHATBOT_ROOT, 'backups')
 config = Config()
 APP_TIMEZONE = ZoneInfo(config.APP_TIMEZONE)
 
-# DB-first system logs (shared table used by chatbot + dashboard)
-system_log_service = SystemLogService(config)
-try:
-    system_log_service.ensure_tables()
-except Exception as e:
-    log_dashboard_event("SYSLOG_INIT", f"Failed to init system log tables: {e}", "ERROR")
-
 # Simple in-memory log storage for dashboard debugging
 dashboard_logs = []
 
@@ -105,6 +98,15 @@ def log_dashboard_event(action, message, level="INFO", error=None):
     if error:
         print(f"Error: {error}")
         traceback.print_exc()
+
+
+# DB-first system logs (shared table used by chatbot + dashboard).
+# NOTE: Must be initialized after log_dashboard_event is defined (avoid import-time NameError).
+system_log_service = SystemLogService(config)
+try:
+    system_log_service.ensure_tables()
+except Exception as e:
+    log_dashboard_event("SYSLOG_INIT", f"Failed to init system log tables: {e}", "ERROR", e)
 
 def ensure_backup_dir():
     """Ensure backup directory exists"""
