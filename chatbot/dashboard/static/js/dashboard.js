@@ -23,6 +23,15 @@ document.addEventListener('DOMContentLoaded', function() {
         loadSystemPrompts();
         loadActivePrompt();
     });
+
+    // Initialize system logs (DB) tab when clicked
+    const syslogsTab = document.getElementById('syslogs-tab');
+    if (syslogsTab) {
+        syslogsTab.addEventListener('click', function() {
+            initSystemLogsDefaults();
+            loadSystemLogs();
+        });
+    }
 });
 
 // Setup event listeners
@@ -1444,6 +1453,113 @@ document.addEventListener('DOMContentLoaded', function() {
         loadDashboardLogs();
     });
 });
+
+// ============================================
+// SYSTEM LOGS (DB) FUNCTIONS
+// ============================================
+
+function initSystemLogsDefaults() {
+    const fromEl = document.getElementById('syslogs-from');
+    const toEl = document.getElementById('syslogs-to');
+    if (!fromEl || !toEl) return;
+
+    // Only set defaults once (if empty)
+    if (fromEl.value && toEl.value) return;
+
+    const now = new Date();
+    const from = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    fromEl.value = toDatetimeLocalValue(from);
+    toEl.value = toDatetimeLocalValue(now);
+}
+
+function toDatetimeLocalValue(d) {
+    // Format: YYYY-MM-DDTHH:MM (no seconds)
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+async function loadSystemLogs() {
+    try {
+        const fromEl = document.getElementById('syslogs-from');
+        const toEl = document.getElementById('syslogs-to');
+        const sevEl = document.getElementById('syslogs-severity');
+        const compEl = document.getElementById('syslogs-component');
+        const qEl = document.getElementById('syslogs-q');
+        const infoEl = document.getElementById('syslogs-info');
+
+        const params = new URLSearchParams();
+        if (fromEl && fromEl.value) params.set('from', new Date(fromEl.value).toISOString());
+        if (toEl && toEl.value) params.set('to', new Date(toEl.value).toISOString());
+        if (sevEl && sevEl.value) params.set('severity', sevEl.value);
+        if (compEl && compEl.value.trim()) params.set('component', compEl.value.trim());
+        if (qEl && qEl.value.trim()) params.set('q', qEl.value.trim());
+        params.set('limit', '200');
+
+        const res = await fetch(`/api/system-logs?${params.toString()}`);
+        const data = await res.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Unknown error');
+        }
+
+        displaySystemLogs(data.logs || []);
+        if (infoEl) {
+            infoEl.textContent = `${(data.logs || []).length} shown (total: ${data.total ?? '-'})`;
+        }
+    } catch (e) {
+        console.error('Error loading system logs:', e);
+        showToast('Error loading system logs: ' + e.message, 'error');
+    }
+}
+
+function displaySystemLogs(logs) {
+    const tbody = document.getElementById('syslogs-table-body');
+    if (!tbody) return;
+
+    if (!logs || logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No logs found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = logs.map((log) => {
+        const ts = log.ts ? new Date(log.ts).toLocaleString('nl-NL') : '-';
+        const sev = (log.severity || '').toLowerCase();
+        const sevBadge = systemLogSeverityBadge(sev);
+        const msg = (log.message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const session = log.session_id || '-';
+        const req = log.request_id ? String(log.request_id).slice(0, 8) : '-';
+
+        const raw = encodeURIComponent(JSON.stringify(log, null, 2));
+
+        return `
+            <tr style="cursor:pointer" onclick="showSystemLogDetail(decodeURIComponent('${raw}'))">
+                <td><small>${ts}</small></td>
+                <td>${sevBadge}</td>
+                <td><small>${log.event_name || '-'}</small></td>
+                <td><small>${log.component || '-'}</small></td>
+                <td>${msg}</td>
+                <td><small>${session}<br>${req}</small></td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function systemLogSeverityBadge(sev) {
+    const map = {
+        'critical': '<span class="badge bg-dark">critical</span>',
+        'error': '<span class="badge bg-danger">error</span>',
+        'warning': '<span class="badge bg-warning text-dark">warning</span>',
+        'info': '<span class="badge bg-info text-dark">info</span>',
+        'debug': '<span class="badge bg-secondary">debug</span>'
+    };
+    return map[sev] || `<span class="badge bg-secondary">${sev || '-'}</span>`;
+}
+
+function showSystemLogDetail(rawJsonText) {
+    const pre = document.getElementById('syslog-detail-pre');
+    if (pre) pre.textContent = rawJsonText;
+    new bootstrap.Modal(document.getElementById('syslogDetailModal')).show();
+}
 
 // Dashboard Activity Logs Functions
 async function loadDashboardLogs() {

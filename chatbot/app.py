@@ -2,17 +2,20 @@
 SECURE Flask application for the Irado Chatbot
 Refactored for maximum security
 """
-from flask import Flask, request, jsonify, send_from_directory, Response
+from flask import Flask, request, jsonify, send_from_directory, Response, g
 import logging
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.security import check_password_hash
+from werkzeug.exceptions import HTTPException
 import base64
 import json
 import re
 import os
 import asyncio
+import time
+import uuid
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Dict, List
@@ -27,6 +30,7 @@ from logging_utils import (
     log_api_call, log_session_start, log_session_message,
     log_error, log_event
 )
+from system_log_service import SystemLogService
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -121,6 +125,14 @@ limiter = Limiter(
 db_manager = DatabaseManager()
 ai_service = AIService()
 email_service = EmailService()
+system_log_service = SystemLogService()
+
+# Ensure system log tables exist (safe for prod; required for dev dashboards/log search).
+try:
+    system_log_service.ensure_tables()
+except Exception:
+    # Never crash app on logging init issues.
+    pass
 
 # Ensure core chat tables exist (safe for prod; required for empty dev DB).
 try:
@@ -132,6 +144,52 @@ except Exception as e:
 
 # Get logger (already configured above)
 logger = logging.getLogger("irado-app")
+
+
+@app.before_request
+def _set_request_context_ids():
+    """Attach correlation ids to each request for end-to-end tracing."""
+    g.request_id = str(uuid.uuid4())
+    g.request_start = time.monotonic()
+
+
+@app.errorhandler(Exception)
+def _handle_unexpected_exception(e: Exception):
+    """Catch unexpected errors and persist them to DB logs."""
+    # Let Flask handle HTTP exceptions (404, 401, etc.) normally.
+    if isinstance(e, HTTPException):
+        return e
+
+    try:
+        req_id = getattr(g, "request_id", None)
+        # Avoid double-logging if an endpoint already logged the exception.
+        if getattr(g, "_syslog_exception_logged", False):
+            raise e
+
+        system_log_service.log_exception(
+            event_name="api.unhandled_exception",
+            component="chatbot",
+            message=str(e),
+            exc=e,
+            request_id=req_id,
+            meta={
+                "path": request.path,
+                "method": request.method,
+                "remote_addr": request.remote_addr,
+            },
+        )
+    except Exception:
+        # If logging fails, still return a safe error payload.
+        pass
+
+    return jsonify(
+        {
+            "error": "Internal server error",
+            "timestamp": now_tz().isoformat(),
+            "request_id": getattr(g, "request_id", None),
+            "version": "2.2.0",
+        }
+    ), 500
 
 def check_auth(auth_header):
     """Check basic authentication with enhanced security"""
@@ -274,6 +332,27 @@ def api_chat():
     try:
         data = request.get_json()
         session_id = data.get('sessionId')
+
+        # DB-first system log event (searchable in dashboard)
+        try:
+            system_log_service.log_event(
+                severity="info",
+                event_name="api.chat.request",
+                component="chatbot",
+                message="Received chat request",
+                request_id=getattr(g, "request_id", None),
+                session_id=session_id,
+                meta={
+                    "path": request.path,
+                    "method": request.method,
+                    "source": data.get("source"),
+                    "message_length": len(data.get("chatInput") or ""),
+                    "message_preview": (data.get("chatInput") or "")[:120],
+                    "remote_addr": request.remote_addr,
+                },
+            )
+        except Exception:
+            pass
         
         # Log incoming API call
         log_api_call(session_id, data.get('chatInput', ''))
@@ -282,6 +361,18 @@ def api_chat():
         is_valid, error_msg = validate_chat_input(data)
         if not is_valid:
             log_event('VALIDATION_ERROR', f'Invalid input: {error_msg}', {'session_id': session_id}, 'warning')
+            try:
+                system_log_service.log_event(
+                    severity="warning",
+                    event_name="api.chat.validation_error",
+                    component="chatbot",
+                    message=f"Invalid input: {error_msg}",
+                    request_id=getattr(g, "request_id", None),
+                    session_id=session_id,
+                    http_status=400,
+                )
+            except Exception:
+                pass
             return jsonify({
                 'error': error_msg,
                 'timestamp': now_tz().isoformat()
@@ -320,7 +411,12 @@ def api_chat():
             'message_count': len(messages)
         })
         tools = ai_service.get_available_tools()
-        ai_response = ai_service.get_chat_completion_with_tools(messages, tools, session_id=session_id)
+        ai_response = ai_service.get_chat_completion_with_tools(
+            messages,
+            tools,
+            session_id=session_id,
+            request_id=getattr(g, "request_id", None),
+        )
         
         # Ensure we always have a dictionary for the UI and for storage.
         if not isinstance(ai_response, dict):
@@ -343,11 +439,60 @@ def api_chat():
             'session_id': session_id,
             'response_length': len(serialized_response)
         })
+
+        # DB-first system success log
+        try:
+            duration_ms = None
+            if getattr(g, "request_start", None) is not None:
+                duration_ms = int((time.monotonic() - g.request_start) * 1000)
+            system_log_service.log_event(
+                severity="info",
+                event_name="api.chat.success",
+                component="chatbot",
+                message="Chat request completed successfully",
+                request_id=getattr(g, "request_id", None),
+                session_id=session_id,
+                http_status=200,
+                meta={
+                    "duration_ms": duration_ms,
+                    "response_length": len(serialized_response),
+                },
+            )
+        except Exception:
+            pass
         
         # Return response
         return jsonify({'output': ai_response})
         
     except Exception as e:
+        # Mark as already logged to avoid double logging by global error handler
+        try:
+            g._syslog_exception_logged = True
+        except Exception:
+            pass
+
+        try:
+            duration_ms = None
+            if getattr(g, "request_start", None) is not None:
+                duration_ms = int((time.monotonic() - g.request_start) * 1000)
+            system_log_service.log_exception(
+                event_name="api.chat.error",
+                component="chatbot",
+                message=str(e),
+                exc=e,
+                request_id=getattr(g, "request_id", None),
+                session_id=session_id,
+                http_status=500,
+                meta={
+                    "duration_ms": duration_ms,
+                    "path": request.path,
+                    "method": request.method,
+                    "remote_addr": request.remote_addr,
+                },
+            )
+        except Exception:
+            pass
+
         log_error('api_chat', e, session_id)
         logger.exception("Chat API error: %s", e)
         import traceback

@@ -9,6 +9,7 @@ from typing import List, Dict, Optional
 from config import Config
 from address_validation import AddressValidationService
 from system_prompt_service import SystemPromptService
+from system_log_service import SystemLogService
 from logging_utils import (
     log_ai_request, log_ai_response, log_tool_call,
     log_tool_result, log_error, log_event
@@ -29,6 +30,37 @@ class AIService:
         )
         self.address_validator = AddressValidationService()
         self.prompt_service = SystemPromptService(self.config)
+        self.system_log_service = SystemLogService(self.config)
+        try:
+            self.system_log_service.ensure_tables()
+        except Exception:
+            pass
+
+    def _classify_openai_error(self, e: Exception) -> Dict[str, Optional[object]]:
+        """Map OpenAI/Azure OpenAI exceptions to stable error types."""
+        error_type = type(e).__name__
+        http_status = getattr(e, "status_code", None) or getattr(e, "status", None)
+
+        # openai v1.x common errors
+        if isinstance(e, getattr(openai, "RateLimitError", ())):
+            error_type = "RateLimited"
+        elif isinstance(e, getattr(openai, "APITimeoutError", ())):
+            error_type = "Timeout"
+        elif isinstance(e, getattr(openai, "APIConnectionError", ())):
+            error_type = "ConnectionError"
+
+        # Fallback heuristic for quota and connection-ish messages
+        msg = str(e).lower()
+        if "quota" in msg:
+            error_type = "QuotaExceeded"
+        elif "rate limit" in msg or "ratelimit" in msg:
+            error_type = "RateLimited"
+        elif "timeout" in msg:
+            error_type = "Timeout"
+        elif "connection" in msg or "connect" in msg:
+            error_type = "ConnectionError"
+
+        return {"error_type": error_type, "http_status": http_status}
     
     def get_system_prompt(self) -> str:
         """
@@ -144,7 +176,13 @@ FOUTAFHANDELING
             print(f"Error getting chat completion: {e}")
             return "Sorry, er is een fout opgetreden. Probeer het later opnieuw."
     
-    def get_chat_completion_with_tools(self, messages: List[Dict], tools: List[Dict], session_id: Optional[str] = None) -> str:
+    def get_chat_completion_with_tools(
+        self,
+        messages: List[Dict],
+        tools: List[Dict],
+        session_id: Optional[str] = None,
+        request_id: Optional[str] = None,
+    ) -> str:
         """Get chat completion with tool handling"""
         session_label = session_id or 'unknown_session'
         try:
@@ -294,6 +332,26 @@ FOUTAFHANDELING
                 }
             
         except Exception as e:
+            # Persist Azure OpenAI failure to DB-first logs (dashboard searchable).
+            try:
+                classification = self._classify_openai_error(e)
+                self.system_log_service.log_exception(
+                    event_name="openai.error",
+                    component="openai",
+                    message=str(e),
+                    exc=e,
+                    request_id=request_id,
+                    session_id=session_id,
+                    error_type=classification.get("error_type"),
+                    http_status=classification.get("http_status"),
+                    meta={
+                        "deployment": self.config.AZURE_OPENAI_DEPLOYMENT,
+                        "api_version": self.config.AZURE_OPENAI_API_VERSION,
+                    },
+                )
+            except Exception:
+                pass
+
             print(f"Error getting chat completion with tools: {e}")
             log_error('get_chat_completion_with_tools', e, session_label)
             # Always return a valid payload even on errors so the frontend stays simple.

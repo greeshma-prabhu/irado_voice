@@ -27,6 +27,7 @@ from config import Config
 
 # Import system prompt service
 from system_prompt_service import SystemPromptService
+from system_log_service import SystemLogService
 
 # Import logging service (relative import)
 try:
@@ -66,6 +67,13 @@ BACKUP_DIR = os.path.join(CHATBOT_ROOT, 'backups')
 # Database configuration
 config = Config()
 APP_TIMEZONE = ZoneInfo(config.APP_TIMEZONE)
+
+# DB-first system logs (shared table used by chatbot + dashboard)
+system_log_service = SystemLogService(config)
+try:
+    system_log_service.ensure_tables()
+except Exception as e:
+    log_dashboard_event("SYSLOG_INIT", f"Failed to init system log tables: {e}", "ERROR")
 
 # Simple in-memory log storage for dashboard debugging
 dashboard_logs = []
@@ -160,6 +168,51 @@ def get_db_connection():
         log_dashboard_event("DB_CONNECT", "Database connection successful with configured SSL mode")
         print("✅ Database connection successful!")
         return conn
+
+
+@app.route('/api/system-logs', methods=['GET'])
+def api_system_logs():
+    """Query DB-backed system logs (system_log_events)."""
+    try:
+        q = request.args.get('q') or None
+        severity = request.args.get('severity') or None
+        component = request.args.get('component') or None
+        event_name = request.args.get('event_name') or None
+        error_type = request.args.get('error_type') or None
+        request_id = request.args.get('request_id') or None
+        session_id = request.args.get('session_id') or None
+
+        limit = int(request.args.get('limit') or 200)
+        offset = int(request.args.get('offset') or 0)
+
+        ts_from_raw = request.args.get('from') or request.args.get('ts_from') or None
+        ts_to_raw = request.args.get('to') or request.args.get('ts_to') or None
+
+        ts_from = None
+        ts_to = None
+        if ts_from_raw:
+            ts_from = datetime.fromisoformat(ts_from_raw)
+        if ts_to_raw:
+            ts_to = datetime.fromisoformat(ts_to_raw)
+
+        logs, total = system_log_service.query_events(
+            ts_from=ts_from,
+            ts_to=ts_to,
+            q=q,
+            severity=severity,
+            component=component,
+            event_name=event_name,
+            error_type=error_type,
+            request_id=request_id,
+            session_id=session_id,
+            limit=limit,
+            offset=offset,
+        )
+
+        return jsonify({'success': True, 'logs': logs, 'total': total})
+    except Exception as e:
+        log_dashboard_event("API_SYSTEM_LOGS", f"Error querying system logs: {e}", "ERROR", e)
+        return jsonify({'success': False, 'error': str(e)}), 500
     except Exception as e:
         log_dashboard_event("DB_CONNECT", f"Database connection failed: {str(e)}", "ERROR", e)
         print(f"❌ Database connection failed: {e}")

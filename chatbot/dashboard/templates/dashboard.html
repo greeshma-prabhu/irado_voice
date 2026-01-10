@@ -56,6 +56,11 @@
                     <i class="fas fa-terminal me-2"></i>Live Logs 🔥
                 </button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="syslogs-tab" data-bs-toggle="tab" data-bs-target="#syslogs-pane" type="button" role="tab">
+                    <i class="fas fa-bug me-2"></i>System Logs (DB)
+                </button>
+            </li>
         </ul>
 
         <!-- Tab Content -->
@@ -852,6 +857,93 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- System Logs (DB) Tab -->
+            <div class="tab-pane fade" id="syslogs-pane" role="tabpanel">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-bug me-2"></i>System Logs (DB)
+                                </h5>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="loadSystemLogs()">
+                                        <i class="fas fa-refresh me-1"></i>Refresh
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Van</label>
+                                        <input type="datetime-local" class="form-control" id="syslogs-from">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Tot</label>
+                                        <input type="datetime-local" class="form-control" id="syslogs-to">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Severity</label>
+                                        <select class="form-select" id="syslogs-severity">
+                                            <option value="">(all)</option>
+                                            <option value="critical">critical</option>
+                                            <option value="error">error</option>
+                                            <option value="warning">warning</option>
+                                            <option value="info">info</option>
+                                            <option value="debug">debug</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Component</label>
+                                        <input type="text" class="form-control" id="syslogs-component" placeholder="chatbot/openai/db...">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Zoek</label>
+                                        <input type="text" class="form-control" id="syslogs-q" placeholder="keyword...">
+                                    </div>
+                                </div>
+
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover table-sm">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th style="width: 160px;">Tijd</th>
+                                                <th style="width: 90px;">Level</th>
+                                                <th style="width: 160px;">Event</th>
+                                                <th style="width: 120px;">Component</th>
+                                                <th>Message</th>
+                                                <th style="width: 180px;">Session / Req</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="syslogs-table-body">
+                                            <tr><td colspan="6" class="text-center text-muted">Open tab om logs te laden.</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted" id="syslogs-info">-</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Log Detail Modal -->
+    <div class="modal fade" id="syslogDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">System Log Detail</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <pre class="bg-light p-3 rounded" style="max-height: 70vh; overflow: auto;" id="syslog-detail-pre"></pre>
                 </div>
             </div>
         </div>
