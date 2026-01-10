@@ -1219,7 +1219,20 @@ async function deletePrompt(promptId) {
 let logStreamActive = false;
 let logEventSource = null;
 let logLineCount = 0;
-const CHATBOT_URL = (window.CHATBOT_URL || 'https://irado-chatbot-app.azurewebsites.net');  // prod default, overridable via template/env
+let CHATBOT_URL = (window.CHATBOT_URL || 'https://irado-chatbot-app.azurewebsites.net');  // prod default; updated via /api/config when available
+
+async function ensureChatbotUrl() {
+    try {
+        const res = await fetch(`/api/config?t=${Date.now()}`, { method: 'GET' });
+        const cfg = await res.json();
+        if (cfg && cfg.success && cfg.chatbot_url) {
+            CHATBOT_URL = cfg.chatbot_url;
+        }
+    } catch (e) {
+        // keep fallback
+        console.warn('Could not load dashboard config (/api/config). Using default CHATBOT_URL.', e);
+    }
+}
 
 function startLiveLogs() {
     if (logStreamActive) return;
@@ -1230,11 +1243,13 @@ function startLiveLogs() {
     document.getElementById('start-logs-btn').disabled = true;
     document.getElementById('stop-logs-btn').disabled = false;
     
-    // First, load recent logs
-    loadRecentLogs();
-    
-    // Then start streaming
-    startLogStream();
+    // First, ensure we use the correct chatbot URL for this environment.
+    ensureChatbotUrl().then(() => {
+        // Then load recent logs
+        loadRecentLogs();
+        // Then start streaming
+        startLogStream();
+    });
 }
 
 async function loadRecentLogs() {

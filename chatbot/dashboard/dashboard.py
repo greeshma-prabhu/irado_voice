@@ -227,6 +227,16 @@ def dashboard():
     chatbot_url = os.getenv('CHATBOT_URL', 'https://irado-chatbot-app.azurewebsites.net')
     return render_template('dashboard.html', chatbot_url=chatbot_url)
 
+
+@app.route('/api/config')
+def api_config():
+    """Expose minimal runtime config needed by the dashboard frontend."""
+    return jsonify({
+        'success': True,
+        'chatbot_url': os.getenv('CHATBOT_URL', 'https://irado-chatbot-app.azurewebsites.net'),
+        'version': '2.2.0'
+    })
+
 @app.route('/api/koad')
 def api_koad_list():
     """API endpoint to get bedrijfsklanten list"""

@@ -27,12 +27,14 @@ if [[ "$ENVIRONMENT" == "dev" ]]; then
   APP_SERVICE_PLAN="irado-dev-app-service-plan"
   DB_HOST_DEFAULT="irado-dev-chat-db.postgres.database.azure.com"
   DB_NAME_DEFAULT="irado_dev_chat"
+  CHATBOT_URL_DEFAULT="https://irado-dev-chatbot-app.azurewebsites.net"
 else
   RESOURCE_GROUP="irado-rg"
   DASHBOARD_APP_NAME="irado-dashboard-app"
   APP_SERVICE_PLAN="irado-app-service-plan"
   DB_HOST_DEFAULT="irado-chat-db.postgres.database.azure.com"
   DB_NAME_DEFAULT="irado_chat"
+  CHATBOT_URL_DEFAULT="https://irado-chatbot-app.azurewebsites.net"
 fi
 TIMESTAMP=$(date +%s)
 DASHBOARD_IMAGE_NAME="irado-dashboard-$(date +%Y%m%d-%H%M%S)"
@@ -182,6 +184,7 @@ az webapp config appsettings set \
         BEDRIJFSKLANTEN_DB_PORT="${BEDRIJFSKLANTEN_DB_PORT:-5432}" \
         BEDRIJFSKLANTEN_DB_NAME="${BEDRIJFSKLANTEN_DB_NAME:-$DB_NAME_DEFAULT}" \
         BEDRIJFSKLANTEN_DB_USER="${BEDRIJFSKLANTEN_DB_USER:-irado_admin}" \
+        CHATBOT_URL="${CHATBOT_URL:-$CHATBOT_URL_DEFAULT}" \
         APP_TIMEZONE="Europe/Amsterdam" \
         TZ="Europe/Amsterdam" \
         WEBSITES_PORT="8000" \
