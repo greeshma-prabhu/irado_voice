@@ -14,6 +14,7 @@ class DatabaseManager:
         self.config = Config()
         self.connection = None
         self._session_configured = False
+        self._schema_ready = False
     
     def get_connection(self):
         """Get database connection"""
@@ -29,6 +30,7 @@ class DatabaseManager:
                     sslmode=self.config.POSTGRES_SSL_MODE
                 )
                 self._configure_session()
+                self._ensure_schema()
                 print("✅ Database connection successful")
             return self.connection
         except Exception as e:
@@ -40,13 +42,12 @@ class DatabaseManager:
         if self.connection and not self.connection.closed:
             self.connection.close()
     
-    def init_database(self):
-        """Initialize database tables"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
+    def _ensure_schema(self):
+        """Ensure core chat tables exist (safe to run on every startup; needed for empty dev DBs)."""
+        if self._schema_ready or not self.connection or self.connection.closed:
+            return
+        cursor = self.connection.cursor()
         try:
-            # Create chat_sessions table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS chat_sessions (
                     id SERIAL PRIMARY KEY,
@@ -55,8 +56,6 @@ class DatabaseManager:
                     last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            
-            # Create chat_messages table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS chat_messages (
                     id SERIAL PRIMARY KEY,
@@ -67,8 +66,6 @@ class DatabaseManager:
                     metadata JSONB
                 )
             """)
-            
-            # Create chat_memory table for AI context
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS chat_memory (
                     id SERIAL PRIMARY KEY,
@@ -79,21 +76,24 @@ class DatabaseManager:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            
-            # Create indexes for better performance
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_chat_sessions_session_id ON chat_sessions(session_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_chat_messages_session_id ON chat_messages(session_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_chat_memory_session_id ON chat_memory(session_id)")
-            
-            conn.commit()
-            print("Database tables initialized successfully")
-            
+
+            self.connection.commit()
+            self._schema_ready = True
         except Exception as e:
-            conn.rollback()
-            print(f"Error initializing database: {e}")
+            self.connection.rollback()
+            print(f"Error ensuring database schema: {e}")
             raise
         finally:
             cursor.close()
+
+    def init_database(self):
+        """Initialize database tables (backwards compatible)."""
+        conn = self.get_connection()
+        # get_connection() calls _ensure_schema() already
+        return conn
 
     def _configure_session(self):
         """Apply per-session settings (timezone, etc.)"""
