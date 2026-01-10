@@ -409,7 +409,6 @@ class IradoChatFullscreen {
         headers.set('Accept', 'application/json');
         headers.set('Authorization', `Basic ${this.apiConfig.auth}`);
         headers.set('X-Requested-With', 'XMLHttpRequest');
-        headers.set('User-Agent', 'IradoChatFullscreen/1.0');
         
         const response = await fetch(this.apiConfig.url, {
             method: 'POST',
