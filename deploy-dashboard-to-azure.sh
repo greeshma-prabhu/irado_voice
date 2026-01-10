@@ -8,24 +8,38 @@ echo "  IRADO DASHBOARD DEPLOYMENT TO AZURE"
 echo "════════════════════════════════════════════════════════════════"
 echo ""
 
+# Environment selection (prod/dev)
+ENVIRONMENT="${ENVIRONMENT:-prod}"
+if [[ "${1:-}" == "--env" ]]; then
+  ENVIRONMENT="${2:-}"
+  shift 2
+fi
+
+if [[ "$ENVIRONMENT" != "prod" && "$ENVIRONMENT" != "dev" ]]; then
+  echo "❌ Error: --env must be 'prod' or 'dev'"
+  exit 1
+fi
+
 # Configuration
-RESOURCE_GROUP="irado-rg"
 LOCATION="westeurope"
 ACR_NAME="irado"
 DASHBOARD_IMAGE_NAME="irado-dashboard-$(date +%Y%m%d-%H%M%S)"
-DASHBOARD_APP_NAME="irado-dashboard-app"
-APP_SERVICE_PLAN="irado-app-service-plan"
 
-# Database configurations (existing Azure databases)
-CHAT_DB_HOST="irado-chat-db.postgres.database.azure.com"
-CHAT_DB_NAME="irado_chat"
-CHAT_DB_USER="irado_admin"
-CHAT_DB_PASSWORD="lqBp6OF31+wCNXzyTMvasFrspdtL+IWPGVtooy2zjS4="
-
-BEDRIJFSKLANTEN_DB_HOST="irado-chat-db.postgres.database.azure.com"
-BEDRIJFSKLANTEN_DB_NAME="irado_chat"
-BEDRIJFSKLANTEN_DB_USER="irado_admin"
-BEDRIJFSKLANTEN_DB_PASSWORD="lqBp6OF31+wCNXzyTMvasFrspdtL+IWPGVtooy2zjS4="
+if [[ "$ENVIRONMENT" == "dev" ]]; then
+  RESOURCE_GROUP="irado-dev-rg"
+  DASHBOARD_APP_NAME="irado-dev-dashboard-app"
+  APP_SERVICE_PLAN="irado-dev-app-service-plan"
+  DB_HOST_DEFAULT="irado-dev-chat-db.postgres.database.azure.com"
+  DB_NAME_DEFAULT="irado_dev_chat"
+  CHATBOT_URL_DEFAULT="https://irado-dev-chatbot-app.azurewebsites.net"
+else
+  RESOURCE_GROUP="irado-rg"
+  DASHBOARD_APP_NAME="irado-dashboard-app"
+  APP_SERVICE_PLAN="irado-app-service-plan"
+  DB_HOST_DEFAULT="irado-chat-db.postgres.database.azure.com"
+  DB_NAME_DEFAULT="irado_chat"
+  CHATBOT_URL_DEFAULT="https://irado-chatbot-app.azurewebsites.net"
+fi
 
 echo "📦 Configuration:"
 echo "   Resource Group: $RESOURCE_GROUP"
@@ -35,7 +49,8 @@ echo ""
 
 # Step 1: Build Docker Image for Dashboard
 echo "🔨 Step 1: Building Dashboard Docker Image..."
-cd /opt/irado/chatbot
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${ROOT_DIR}/chatbot"
 
 cat > Dockerfile.dashboard << 'EOF'
 FROM python:3.11-slim
@@ -167,18 +182,29 @@ az webapp config appsettings set \
     --name $DASHBOARD_APP_NAME \
     --resource-group $RESOURCE_GROUP \
     --settings \
-        POSTGRES_HOST="$CHAT_DB_HOST" \
+        POSTGRES_HOST="${POSTGRES_HOST:-$DB_HOST_DEFAULT}" \
         POSTGRES_PORT="5432" \
-        POSTGRES_DB="$CHAT_DB_NAME" \
-        POSTGRES_USER="$CHAT_DB_USER" \
-        POSTGRES_PASSWORD="$CHAT_DB_PASSWORD" \
-        BEDRIJFSKLANTEN_DB_HOST="$BEDRIJFSKLANTEN_DB_HOST" \
+        POSTGRES_DB="${POSTGRES_DB:-$DB_NAME_DEFAULT}" \
+        POSTGRES_USER="${POSTGRES_USER:-irado_admin}" \
+        BEDRIJFSKLANTEN_DB_HOST="${BEDRIJFSKLANTEN_DB_HOST:-$DB_HOST_DEFAULT}" \
         BEDRIJFSKLANTEN_DB_PORT="5432" \
-        BEDRIJFSKLANTEN_DB_NAME="$BEDRIJFSKLANTEN_DB_NAME" \
-        BEDRIJFSKLANTEN_DB_USER="$BEDRIJFSKLANTEN_DB_USER" \
-        BEDRIJFSKLANTEN_DB_PASSWORD="$BEDRIJFSKLANTEN_DB_PASSWORD" \
+        BEDRIJFSKLANTEN_DB_NAME="${BEDRIJFSKLANTEN_DB_NAME:-$DB_NAME_DEFAULT}" \
+        BEDRIJFSKLANTEN_DB_USER="${BEDRIJFSKLANTEN_DB_USER:-irado_admin}" \
+        CHATBOT_URL="${CHATBOT_URL:-$CHATBOT_URL_DEFAULT}" \
         WEBSITES_PORT="8000" \
         SCM_DO_BUILD_DURING_DEPLOYMENT="false"
+
+# Set secrets only if provided in environment (avoid committing secrets into this script).
+if [[ -n "${POSTGRES_PASSWORD:-}" || -n "${BEDRIJFSKLANTEN_DB_PASSWORD:-}" ]]; then
+  secret_settings=()
+  [[ -n "${POSTGRES_PASSWORD:-}" ]] && secret_settings+=("POSTGRES_PASSWORD=${POSTGRES_PASSWORD}")
+  [[ -n "${BEDRIJFSKLANTEN_DB_PASSWORD:-}" ]] && secret_settings+=("BEDRIJFSKLANTEN_DB_PASSWORD=${BEDRIJFSKLANTEN_DB_PASSWORD}")
+  az webapp config appsettings set \
+      --name "$DASHBOARD_APP_NAME" \
+      --resource-group "$RESOURCE_GROUP" \
+      --settings "${secret_settings[@]}" \
+      --output none
+fi
 
 echo "✅ Environment variables configured"
 echo ""

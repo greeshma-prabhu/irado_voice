@@ -1,6 +1,7 @@
 #!/bin/bash
 # Quick deployment script voor Irado Chatbot naar Azure
-# Usage: ./deploy-to-azure.sh [optional-tag-name]
+# Usage:
+#   ./deploy-to-azure.sh [--env prod|dev] [optional-tag-name]
 
 set -e  # Stop bij errors
 
@@ -11,10 +12,41 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Configuration
-RESOURCE_GROUP="irado-rg"
-WEBAPP_NAME="irado-chatbot-app"
+# Environment selection (prod/dev)
+ENVIRONMENT="prod"
+TAG_ARG=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --env)
+            ENVIRONMENT="${2:-}"
+            shift 2
+            ;;
+        *)
+            TAG_ARG="$1"
+            shift 1
+            ;;
+    esac
+done
+
+if [[ "$ENVIRONMENT" != "prod" && "$ENVIRONMENT" != "dev" ]]; then
+    echo -e "${RED}❌ Error: --env must be 'prod' or 'dev'${NC}"
+    exit 1
+fi
+
+# Configuration (per environment)
 ACR_NAME="irado"
+if [[ "$ENVIRONMENT" == "dev" ]]; then
+    RESOURCE_GROUP="irado-dev-rg"
+    WEBAPP_NAME="irado-dev-chatbot-app"
+    DB_HOST_DEFAULT="irado-dev-chat-db.postgres.database.azure.com"
+    DB_NAME_DEFAULT="irado_dev_chat"
+else
+    RESOURCE_GROUP="irado-rg"
+    WEBAPP_NAME="irado-chatbot-app"
+    DB_HOST_DEFAULT="irado-chat-db.postgres.database.azure.com"
+    DB_NAME_DEFAULT="irado_chat"
+fi
+
 IMAGE_NAME="chatbot-$(date +%Y%m%d-%H%M%S)"
 VERSION=$(cat VERSION.txt)
 
@@ -30,11 +62,11 @@ if [ ! -f "Dockerfile.chatbot" ]; then
 fi
 
 # Generate unique tag
-if [ -z "$1" ]; then
+if [ -z "$TAG_ARG" ]; then
     TAG="v$(date +%s)"
     echo -e "${YELLOW}⚠️  Geen tag opgegeven, gebruik timestamp: $TAG${NC}"
 else
-    TAG="$1"
+    TAG="$TAG_ARG"
     echo -e "${GREEN}✅ Gebruik custom tag: $TAG${NC}"
 fi
 
@@ -115,28 +147,32 @@ fi
 # Step 4.5: Set database environment variables
 echo ""
 echo -e "${BLUE}🗄️  Setting database environment variables...${NC}"
+
+# Always set non-secret settings. Secrets are only set if provided in the environment.
+SETTINGS=(
+    "POSTGRES_HOST=${POSTGRES_HOST:-$DB_HOST_DEFAULT}"
+    "POSTGRES_PORT=${POSTGRES_PORT:-5432}"
+    "POSTGRES_DB=${POSTGRES_DB:-$DB_NAME_DEFAULT}"
+    "POSTGRES_USER=${POSTGRES_USER:-irado_admin}"
+    "POSTGRES_SSLMODE=${POSTGRES_SSLMODE:-require}"
+    "APP_TIMEZONE=${APP_TIMEZONE:-Europe/Amsterdam}"
+    "TZ=${TZ:-Europe/Amsterdam}"
+    "WEBSITES_PORT=80"
+)
+
+[[ -n "${POSTGRES_PASSWORD:-}" ]] && SETTINGS+=("POSTGRES_PASSWORD=${POSTGRES_PASSWORD}")
+[[ -n "${CHAT_DB_PASSWORD:-}" ]] && SETTINGS+=("CHAT_DB_PASSWORD=${CHAT_DB_PASSWORD}")
+[[ -n "${AZURE_OPENAI_API_KEY:-}" ]] && SETTINGS+=("AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}")
+[[ -n "${AZURE_OPENAI_ENDPOINT:-}" ]] && SETTINGS+=("AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}")
+[[ -n "${AZURE_OPENAI_DEPLOYMENT:-}" ]] && SETTINGS+=("AZURE_OPENAI_DEPLOYMENT=${AZURE_OPENAI_DEPLOYMENT}")
+[[ -n "${AZURE_OPENAI_API_VERSION:-}" ]] && SETTINGS+=("AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION}")
+[[ -n "${CHAT_BASIC_AUTH_USER:-}" ]] && SETTINGS+=("CHAT_BASIC_AUTH_USER=${CHAT_BASIC_AUTH_USER}")
+[[ -n "${CHAT_BASIC_AUTH_PASSWORD:-}" ]] && SETTINGS+=("CHAT_BASIC_AUTH_PASSWORD=${CHAT_BASIC_AUTH_PASSWORD}")
+
 az webapp config appsettings set \
-    --resource-group $RESOURCE_GROUP \
-    --name $WEBAPP_NAME \
-    --settings \
-        CHAT_DB_HOST="irado-chat-db.postgres.database.azure.com" \
-        CHAT_DB_NAME="irado_chat" \
-        CHAT_DB_USER="irado_admin" \
-        CHAT_DB_PASSWORD="lqBp6OF31+wCNXzyTMvasFrspdtL+IWPGVtooy2zjS4=" \
-        POSTGRES_HOST="irado-chat-db.postgres.database.azure.com" \
-        POSTGRES_DB="irado_chat" \
-        POSTGRES_USER="irado_admin" \
-        POSTGRES_PASSWORD="lqBp6OF31+wCNXzyTMvasFrspdtL+IWPGVtooy2zjS4=" \
-        POSTGRES_PORT="5432" \
-        POSTGRES_SSLMODE="require" \
-        APP_TIMEZONE="Europe/Amsterdam" \
-        TZ="Europe/Amsterdam" \
-        AZURE_OPENAI_API_KEY="BXFgQF9udVZRqyhvapyyKmaO5MxXH5CUZb2Xf992rD99al4C4zyKJQQJ99BJACfhMk5XJ3w3AAAAACOGL8rA" \
-        AZURE_OPENAI_ENDPOINT="https://info-mgal213r-swedencentral.cognitiveservices.azure.com" \
-        AZURE_OPENAI_DEPLOYMENT="gpt-4o" \
-        AZURE_OPENAI_API_VERSION="2025-01-01-preview" \
-        CHAT_BASIC_AUTH_USER="irado" \
-        CHAT_BASIC_AUTH_PASSWORD="20Irado25!" \
+    --resource-group "$RESOURCE_GROUP" \
+    --name "$WEBAPP_NAME" \
+    --settings "${SETTINGS[@]}" \
     --output none
 
 if [ $? -eq 0 ]; then

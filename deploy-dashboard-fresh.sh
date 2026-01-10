@@ -7,14 +7,35 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Environment selection (prod/dev)
+ENVIRONMENT="${ENVIRONMENT:-prod}"
+if [[ "${1:-}" == "--env" ]]; then
+  ENVIRONMENT="${2:-}"
+  shift 2
+fi
+if [[ "$ENVIRONMENT" != "prod" && "$ENVIRONMENT" != "dev" ]]; then
+  echo -e "${RED}❌ Error: --env must be 'prod' or 'dev'${NC}"
+  exit 1
+fi
+
 # Configuration
-RESOURCE_GROUP="irado-rg"
 LOCATION="westeurope"
 ACR_NAME="irado"
+if [[ "$ENVIRONMENT" == "dev" ]]; then
+  RESOURCE_GROUP="irado-dev-rg"
+  DASHBOARD_APP_NAME="irado-dev-dashboard-app"
+  APP_SERVICE_PLAN="irado-dev-app-service-plan"
+  DB_HOST_DEFAULT="irado-dev-chat-db.postgres.database.azure.com"
+  DB_NAME_DEFAULT="irado_dev_chat"
+else
+  RESOURCE_GROUP="irado-rg"
+  DASHBOARD_APP_NAME="irado-dashboard-app"
+  APP_SERVICE_PLAN="irado-app-service-plan"
+  DB_HOST_DEFAULT="irado-chat-db.postgres.database.azure.com"
+  DB_NAME_DEFAULT="irado_chat"
+fi
 TIMESTAMP=$(date +%s)
 DASHBOARD_IMAGE_NAME="irado-dashboard-$(date +%Y%m%d-%H%M%S)"
-DASHBOARD_APP_NAME="irado-dashboard-app"
-APP_SERVICE_PLAN="irado-app-service-plan"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║  IRADO DASHBOARD FRESH DEPLOYMENT TO AZURE                    ║${NC}"
@@ -149,39 +170,35 @@ echo ""
 # Step 7: Configure Environment Variables
 echo "⚙️  Step 7: Configuring Environment Variables..."
 
-# Database configurations (same as chatbot)
-CHAT_DB_HOST="irado-chat-db.postgres.database.azure.com"
-CHAT_DB_PORT="5432"
-CHAT_DB_NAME="irado_chat"
-CHAT_DB_USER="irado_admin"
-CHAT_DB_PASSWORD="lqBp6OF31+wCNXzyTMvasFrspdtL+IWPGVtooy2zjS4="
-
-# Business clients database (using same database as chat)
-BEDRIJFSKLANTEN_DB_HOST="irado-chat-db.postgres.database.azure.com"
-BEDRIJFSKLANTEN_DB_PORT="5432"
-BEDRIJFSKLANTEN_DB_NAME="irado_chat"
-BEDRIJFSKLANTEN_DB_USER="irado_admin"
-BEDRIJFSKLANTEN_DB_PASSWORD="lqBp6OF31+wCNXzyTMvasFrspdtL+IWPGVtooy2zjS4="
-
 az webapp config appsettings set \
     --name $DASHBOARD_APP_NAME \
     --resource-group $RESOURCE_GROUP \
     --settings \
-        POSTGRES_HOST="$CHAT_DB_HOST" \
-        POSTGRES_PORT="$CHAT_DB_PORT" \
-        POSTGRES_DB="$CHAT_DB_NAME" \
-        POSTGRES_USER="$CHAT_DB_USER" \
-        POSTGRES_PASSWORD="$CHAT_DB_PASSWORD" \
-        BEDRIJFSKLANTEN_DB_HOST="$BEDRIJFSKLANTEN_DB_HOST" \
-        BEDRIJFSKLANTEN_DB_PORT="$BEDRIJFSKLANTEN_DB_PORT" \
-        BEDRIJFSKLANTEN_DB_NAME="$BEDRIJFSKLANTEN_DB_NAME" \
-        BEDRIJFSKLANTEN_DB_USER="$BEDRIJFSKLANTEN_DB_USER" \
-        BEDRIJFSKLANTEN_DB_PASSWORD="$BEDRIJFSKLANTEN_DB_PASSWORD" \
+        POSTGRES_HOST="${POSTGRES_HOST:-$DB_HOST_DEFAULT}" \
+        POSTGRES_PORT="${POSTGRES_PORT:-5432}" \
+        POSTGRES_DB="${POSTGRES_DB:-$DB_NAME_DEFAULT}" \
+        POSTGRES_USER="${POSTGRES_USER:-irado_admin}" \
+        BEDRIJFSKLANTEN_DB_HOST="${BEDRIJFSKLANTEN_DB_HOST:-$DB_HOST_DEFAULT}" \
+        BEDRIJFSKLANTEN_DB_PORT="${BEDRIJFSKLANTEN_DB_PORT:-5432}" \
+        BEDRIJFSKLANTEN_DB_NAME="${BEDRIJFSKLANTEN_DB_NAME:-$DB_NAME_DEFAULT}" \
+        BEDRIJFSKLANTEN_DB_USER="${BEDRIJFSKLANTEN_DB_USER:-irado_admin}" \
         APP_TIMEZONE="Europe/Amsterdam" \
         TZ="Europe/Amsterdam" \
         WEBSITES_PORT="8000" \
         SCM_DO_BUILD_DURING_DEPLOYMENT="false" \
         WEBSITES_ENABLE_APP_SERVICE_STORAGE="false"
+
+# Set secrets only if provided
+secret_settings=()
+[[ -n "${POSTGRES_PASSWORD:-}" ]] && secret_settings+=("POSTGRES_PASSWORD=${POSTGRES_PASSWORD}")
+[[ -n "${BEDRIJFSKLANTEN_DB_PASSWORD:-}" ]] && secret_settings+=("BEDRIJFSKLANTEN_DB_PASSWORD=${BEDRIJFSKLANTEN_DB_PASSWORD}")
+if [[ ${#secret_settings[@]} -gt 0 ]]; then
+  az webapp config appsettings set \
+      --name "$DASHBOARD_APP_NAME" \
+      --resource-group "$RESOURCE_GROUP" \
+      --settings "${secret_settings[@]}" \
+      --output none
+fi
 
 echo "✅ Environment variables configured"
 echo ""
