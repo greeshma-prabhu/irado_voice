@@ -28,6 +28,15 @@ if [[ "$ENVIRONMENT" == "dev" ]]; then
   DB_HOST_DEFAULT="irado-dev-chat-db.postgres.database.azure.com"
   DB_NAME_DEFAULT="irado_dev_chat"
   CHATBOT_URL_DEFAULT="https://irado-dev-chatbot-app.azurewebsites.net"
+
+  # Server-only convenience: if /opt/irado-azure/.env.dev.local exists, load it so
+  # fresh dev dashboard deploys always get POSTGRES_PASSWORD without committing secrets.
+  if [[ -z "${POSTGRES_PASSWORD:-}" && -f ".env.dev.local" ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    source ".env.dev.local"
+    set +a
+  fi
 else
   RESOURCE_GROUP="irado-rg"
   DASHBOARD_APP_NAME="irado-dashboard-app"

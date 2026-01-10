@@ -36,6 +36,7 @@ class SystemPromptService:
             )
             self.connection.autocommit = False
             self._configure_session()
+            self._ensure_prompts_table()
             self._ensure_state_table()
         return self.connection
 
@@ -75,6 +76,39 @@ class SystemPromptService:
         except Exception as e:
             self.connection.rollback()
             logger.warning(f"Failed to ensure system_prompt_state table: {e}")
+        finally:
+            cursor.close()
+
+    def _ensure_prompts_table(self):
+        """Ensure system_prompts table exists (needed for empty dev databases)."""
+        if not self.connection:
+            return
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS system_prompts (
+                    id SERIAL PRIMARY KEY,
+                    version VARCHAR(50) NOT NULL UNIQUE,
+                    content TEXT NOT NULL,
+                    is_active BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_by VARCHAR(255) DEFAULT 'admin',
+                    notes TEXT
+                )
+            """)
+            cursor.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_system_prompts_active
+                ON system_prompts(is_active) WHERE is_active = TRUE
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_system_prompts_version
+                ON system_prompts(version)
+            """)
+            self.connection.commit()
+        except Exception as e:
+            self.connection.rollback()
+            logger.warning(f"Failed to ensure system_prompts table: {e}")
         finally:
             cursor.close()
 
