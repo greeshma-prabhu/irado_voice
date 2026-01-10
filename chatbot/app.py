@@ -122,6 +122,14 @@ db_manager = DatabaseManager()
 ai_service = AIService()
 email_service = EmailService()
 
+# Ensure core chat tables exist (safe for prod; required for empty dev DB).
+try:
+    db_manager.init_database()
+except Exception as e:
+    # Do not crash the whole app on startup; endpoints will surface DB issues.
+    logger = logging.getLogger("irado-app")
+    logger.error("Database initialization failed: %s", e)
+
 # Get logger (already configured above)
 logger = logging.getLogger("irado-app")
 
