@@ -170,6 +170,10 @@ def get_db_connection():
         log_dashboard_event("DB_CONNECT", "Database connection successful with configured SSL mode")
         print("✅ Database connection successful!")
         return conn
+    except Exception as e:
+        log_dashboard_event("DB_CONNECT", f"Database connection failed: {str(e)}", "ERROR", e)
+        print(f"❌ Database connection failed: {e}")
+        raise
 
 
 @app.route('/api/system-logs', methods=['GET'])
@@ -193,8 +197,10 @@ def api_system_logs():
         ts_from = None
         ts_to = None
         if ts_from_raw:
+            ts_from_raw = ts_from_raw.replace('Z', '+00:00')
             ts_from = datetime.fromisoformat(ts_from_raw)
         if ts_to_raw:
+            ts_to_raw = ts_to_raw.replace('Z', '+00:00')
             ts_to = datetime.fromisoformat(ts_to_raw)
 
         logs, total = system_log_service.query_events(
@@ -215,10 +221,6 @@ def api_system_logs():
     except Exception as e:
         log_dashboard_event("API_SYSTEM_LOGS", f"Error querying system logs: {e}", "ERROR", e)
         return jsonify({'success': False, 'error': str(e)}), 500
-    except Exception as e:
-        log_dashboard_event("DB_CONNECT", f"Database connection failed: {str(e)}", "ERROR", e)
-        print(f"❌ Database connection failed: {e}")
-        raise
 
 def create_backup():
     """Create backup of KOAD file"""
