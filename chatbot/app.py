@@ -105,7 +105,7 @@ CORS(
     app,
     resources={r"/api/*": {"origins": _cors_origins()}},
     supports_credentials=False,
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
     methods=["GET", "POST", "OPTIONS"],
 )
 

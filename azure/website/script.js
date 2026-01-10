@@ -264,7 +264,6 @@ class IradoChat {
         headers.set('Content-Type', 'application/json');
         headers.set('Accept', 'application/json');
         headers.set('Authorization', `Basic ${this.apiConfig.auth}`);
-        headers.set('X-Requested-With', 'XMLHttpRequest');
         
         const response = await fetch(this.apiConfig.url, {
             method: 'POST',
