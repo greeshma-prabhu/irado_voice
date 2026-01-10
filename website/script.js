@@ -7,7 +7,8 @@ class IradoChat {
         this.currentLanguage = 'nl';
         // URL for the afvalplaats image served by the chatbot backend.
         // This image shows clearly where residents should place bulky waste.
-        this.afvalplaatsImageUrl = 'https://irado-chatbot-app.azurewebsites.net/media/afvalplaats.png';
+        this.apiBaseUrl = this.getApiBaseUrl();
+        this.afvalplaatsImageUrl = `${this.apiBaseUrl}/media/afvalplaats.png`;
         
         this.apiConfig = this.getApiConfig();
         // Bind methods used as event handlers
@@ -47,13 +48,30 @@ class IradoChat {
     }
     
     getApiConfig() {
-        const endpoint = 'https://irado-chatbot-app.azurewebsites.net/api/chat';
+        const endpoint = `${this.apiBaseUrl}/api/chat`;
         const authToken = 'aXJhZG86MjBJcmFkbzI1IQ==';
         
         return {
             url: endpoint + '?v=' + Date.now(),
             auth: authToken
         };
+    }
+
+    getApiBaseUrl() {
+        // Allow override via global var (e.g. on irado.nl embed):
+        // window.IRADO_CHATBOT_API_BASE = 'https://irado-chatbot-app.azurewebsites.net'
+        if (window.IRADO_CHATBOT_API_BASE) {
+            return String(window.IRADO_CHATBOT_API_BASE).replace(/\/+$/, '');
+        }
+
+        // If the widget is served from an Azure chatbot app, use same-origin.
+        const host = window.location.hostname || '';
+        if (host.endsWith('.azurewebsites.net')) {
+            return window.location.origin;
+        }
+
+        // Default: production chatbot API
+        return 'https://irado-chatbot-app.azurewebsites.net';
     }
     
     initializeElements() {

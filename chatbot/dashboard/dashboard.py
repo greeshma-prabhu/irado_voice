@@ -224,7 +224,8 @@ def health_check():
 @app.route('/')
 def dashboard():
     """Main dashboard page"""
-    return render_template('dashboard.html')
+    chatbot_url = os.getenv('CHATBOT_URL', 'https://irado-chatbot-app.azurewebsites.net')
+    return render_template('dashboard.html', chatbot_url=chatbot_url)
 
 @app.route('/api/koad')
 def api_koad_list():

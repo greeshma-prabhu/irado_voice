@@ -7,6 +7,11 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link href="{{ url_for('static', filename='css/dashboard.css') }}" rel="stylesheet">
+    <script>
+        // Used by static/js/dashboard.js (live logs tab).
+        // For dev, set via Azure App Setting CHATBOT_URL.
+        window.CHATBOT_URL = "{{ chatbot_url|default('https://irado-chatbot-app.azurewebsites.net')|e }}";
+    </script>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">

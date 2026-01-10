@@ -1219,7 +1219,7 @@ async function deletePrompt(promptId) {
 let logStreamActive = false;
 let logEventSource = null;
 let logLineCount = 0;
-const CHATBOT_URL = 'https://irado-chatbot-app.azurewebsites.net';  // Production URL
+const CHATBOT_URL = (window.CHATBOT_URL || 'https://irado-chatbot-app.azurewebsites.net');  // prod default, overridable via template/env
 
 function startLiveLogs() {
     if (logStreamActive) return;

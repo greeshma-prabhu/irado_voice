@@ -3,7 +3,8 @@ class IradoChatFullscreen {
         this.sessionId = this.getOrCreateSessionId();
         this.isLoading = false;
         this.currentLanguage = 'nl';
-        this.afvalplaatsImageUrl = 'https://irado-chatbot-app.azurewebsites.net/media/afvalplaats.png';
+        this.apiBaseUrl = this.getApiBaseUrl();
+        this.afvalplaatsImageUrl = `${this.apiBaseUrl}/media/afvalplaats.png`;
         
         this.apiConfig = this.getApiConfig();
         
@@ -41,13 +42,30 @@ class IradoChatFullscreen {
     }
     
     getApiConfig() {
-        const endpoint = 'https://irado.mainfact.ai/api/chat';
+        const endpoint = `${this.apiBaseUrl}/api/chat`;
         const authToken = 'aXJhZG86MjBJcmFkbzI1IQ==';
         
         return {
             url: endpoint + '?v=' + Date.now(),
             auth: authToken
         };
+    }
+
+    getApiBaseUrl() {
+        // Optional override from embedding page:
+        // window.IRADO_CHATBOT_API_BASE = 'https://irado-chatbot-app.azurewebsites.net'
+        if (window.IRADO_CHATBOT_API_BASE) {
+            return String(window.IRADO_CHATBOT_API_BASE).replace(/\/+$/, '');
+        }
+
+        // If served from an Azure chatbot app, use same-origin (dev/prod).
+        const host = window.location.hostname || '';
+        if (host.endsWith('.azurewebsites.net')) {
+            return window.location.origin;
+        }
+
+        // Default: production chatbot API base.
+        return 'https://irado-chatbot-app.azurewebsites.net';
     }
     
     initializeElements() {
