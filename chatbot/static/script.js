@@ -801,7 +801,6 @@ class IradoChat {
             this.startVoiceRecording();
         });
         
-        // Simple mouseup handler - stop recording when button is released
         freshBtn.addEventListener('mouseup', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -810,16 +809,6 @@ class IradoChat {
                 this.stopAndSendVoiceMessage();
             }
         });
-        
-        // Also listen on document for mouseup (in case mouse moves outside button)
-        // This ensures recording stops even if mouse leaves button area
-        this.documentMouseUpHandler = (e) => {
-            if (this.isRecording) {
-                console.log('Document mouseup - stopping recording');
-                this.stopAndSendVoiceMessage();
-            }
-        };
-        document.addEventListener('mouseup', this.documentMouseUpHandler);
         
         // No mouseleave handler: recording should not cancel when cursor drifts.
         
@@ -1147,6 +1136,7 @@ class IradoChat {
         if (audio.paused) {
             const playPromise = audio.play();
             if (playPromise && typeof playPromise.catch === 'function') {
+                // Autoplay can be blocked; ignore and let user click play
                 playPromise.catch((error) => {
                     console.warn('Audio play blocked:', error);
                 });
@@ -1253,7 +1243,7 @@ class IradoChat {
                 }
                 
                 // Handle buttons if present (same as text chat) - show these
-                if (Array.isArray(payload.buttons) && payload.buttons.length > 0) {
+                if (!this.voiceOnlyResponses && Array.isArray(payload.buttons) && payload.buttons.length > 0) {
                     this.renderVoiceButtons(payload.buttons);
                 }
                 
@@ -1462,20 +1452,6 @@ class IradoChat {
             return;
         }
         
-        // Set up global mouseup listener - works even if mouse leaves button area
-        this.globalMouseUpHandler = (e) => {
-            if (this.isRecording) {
-                console.log('Global mouseup - stopping recording');
-                this.stopAndSendVoiceMessage();
-            }
-            // Clean up
-            if (this.globalMouseUpHandler) {
-                document.removeEventListener('mouseup', this.globalMouseUpHandler);
-                this.globalMouseUpHandler = null;
-            }
-        };
-        document.addEventListener('mouseup', this.globalMouseUpHandler);
-        
         try {
             console.log('Requesting microphone...');
             // Request microphone access
@@ -1524,24 +1500,15 @@ class IradoChat {
             
             console.log('Recording started, isRecording:', this.isRecording);
             
-            // Update UI - Don't hide button, just overlay recording status
+            // Update UI
             const recordBtn = document.getElementById('voice-record-btn');
             const recordingStatus = document.getElementById('recording-status');
             
-            // Keep button visible but disabled - prevents mouseleave issues
             if (recordBtn) {
-                recordBtn.style.opacity = '0.3'; // Slightly visible but clearly disabled
-                recordBtn.style.pointerEvents = 'none';
-                recordBtn.disabled = true;
+                recordBtn.style.display = 'none';
             }
             if (recordingStatus) {
                 recordingStatus.style.display = 'flex';
-                // Position it to cover the button area exactly
-                recordingStatus.style.position = 'absolute';
-                recordingStatus.style.top = '0';
-                recordingStatus.style.left = '0';
-                recordingStatus.style.right = '0';
-                recordingStatus.style.bottom = '0';
             }
             
             // Start timer
@@ -1577,12 +1544,6 @@ class IradoChat {
     cancelRecording() {
         if (!this.isRecording) return;
         
-        // Remove global mouseup listener
-        if (this.globalMouseUpHandler) {
-            document.removeEventListener('mouseup', this.globalMouseUpHandler);
-            this.globalMouseUpHandler = null;
-        }
-        
         // Stop recording
         if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
             this.mediaRecorder.stop();
@@ -1611,8 +1572,6 @@ class IradoChat {
         
         if (recordBtn) {
             recordBtn.style.display = 'flex';
-            recordBtn.style.opacity = '1';
-            recordBtn.style.pointerEvents = 'auto';
         }
         if (recordingStatus) {
             recordingStatus.style.display = 'none';
@@ -1621,12 +1580,6 @@ class IradoChat {
     
     async stopAndSendVoiceMessage() {
         if (!this.isRecording) return;
-        
-        // Remove global mouseup listener
-        if (this.globalMouseUpHandler) {
-            document.removeEventListener('mouseup', this.globalMouseUpHandler);
-            this.globalMouseUpHandler = null;
-        }
         
         // Stop recording
         if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
@@ -1639,14 +1592,10 @@ class IradoChat {
             this.recordingTimer = null;
         }
         
-        // Save audio chunks BEFORE stopping
-        const audioChunksCopy = [...this.audioChunks];
-        
-        // Wait for MediaRecorder to finish
+        // Wait for audio data
         await new Promise((resolve) => {
-            if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+            if (this.mediaRecorder) {
                 this.mediaRecorder.onstop = () => {
-                    console.log('MediaRecorder stopped, audio chunks:', audioChunksCopy.length);
                     resolve();
                 };
             } else {
@@ -1654,57 +1603,41 @@ class IradoChat {
             }
         });
         
-        // Create audio blob from saved chunks
-        let audioBlob = null;
-        if (audioChunksCopy.length > 0) {
-            const blobType = this.recordingMimeType || 'audio/webm';
-            audioBlob = new Blob(audioChunksCopy, { type: blobType });
-            console.log('Audio blob created, size:', audioBlob.size, 'bytes');
-        } else {
-            console.log('No audio chunks to process');
-        }
-        
         // Stop stream
         if (this.currentAudioStream) {
             this.currentAudioStream.getTracks().forEach(track => track.stop());
             this.currentAudioStream = null;
         }
         
-        // RESET STATE IMMEDIATELY - Button can be used again NOW
-        this.isRecording = false;
-        this.mediaRecorder = null;
-        this.audioChunks = [];
-        this.recordingStartTime = null;
-        
-        // Reset UI IMMEDIATELY
+        // Reset UI
         const recordBtn = document.getElementById('voice-record-btn');
         const recordingStatus = document.getElementById('recording-status');
         
         if (recordBtn) {
             recordBtn.style.display = 'flex';
-            recordBtn.style.opacity = '1';
-            recordBtn.style.pointerEvents = 'auto';
-            recordBtn.disabled = false;
         }
         if (recordingStatus) {
             recordingStatus.style.display = 'none';
-            recordingStatus.style.position = '';
-            recordingStatus.style.top = '';
-            recordingStatus.style.left = '';
-            recordingStatus.style.right = '';
-            recordingStatus.style.bottom = '';
         }
         
         // Check if we have audio
-        if (!audioBlob || audioBlob.size === 0) {
-            console.log('No audio to process, button is ready for next recording');
+        if (this.audioChunks.length === 0) {
+            this.isRecording = false;
             return;
         }
         
-        // Process the message (async - button is already reset and ready)
-        this.processVoiceMessage(audioBlob).catch(error => {
-            console.error('Error processing voice message:', error);
-        });
+        // Create audio blob
+        const blobType = this.recordingMimeType || 'audio/webm';
+        const audioBlob = new Blob(this.audioChunks, { type: blobType });
+        
+        // Reset state
+        this.isRecording = false;
+        const audioChunks = [...this.audioChunks];
+        this.audioChunks = [];
+        this.recordingStartTime = null;
+        
+        // Process the message
+        await this.processVoiceMessage(audioBlob);
     }
     
     async processVoiceMessage(audioBlob) {

@@ -165,3 +165,25 @@ class Config:
     INTERNAL_EMAIL = 'a.jonker@mainfact.ai'
     FROM_EMAIL = 'irado@mainfact.ai'
     NOREPLY_EMAIL = 'noreply@mainfact.ai'
+
+    # Voice Bot Settings
+    AZURE_COMMUNICATION_CONNECTION_STRING = os.getenv('AZURE_COMMUNICATION_CONNECTION_STRING')
+    AZURE_COMMUNICATION_PHONE_NUMBER = os.getenv('AZURE_COMMUNICATION_PHONE_NUMBER')
+    AZURE_SPEECH_KEY = os.getenv('AZURE_SPEECH_KEY')
+    AZURE_SPEECH_REGION = os.getenv('AZURE_SPEECH_REGION', 'westeurope')
+    AZURE_SPEECH_ENDPOINT = os.getenv('AZURE_SPEECH_ENDPOINT')
+    CHATBOT_API_URL = os.getenv('CHATBOT_API_URL', 'https://irado-chatbot-app.azurewebsites.net/api/chat')
+    
+    # Voice Bot Language Settings
+    VOICE_BOT_SUPPORTED_LANGUAGES = {
+        '1': 'en',  # English
+        '2': 'nl',  # Dutch
+        '3': 'ar',  # Arabic
+    }
+    
+    # Voice Settings
+    VOICE_BOT_VOICE_NAMES = {
+        'en': 'en-US-JennyNeural',
+        'nl': 'nl-NL-ColetteNeural',
+        'ar': 'ar-SA-ZariyahNeural',
+    }

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>irado Chat Test - Mobile Responsive</title>
+    
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=2">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+    <link rel="manifest" href="/site.webmanifest?v=2">
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #2563eb;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            border-radius: 3px;
+        }
+        .iframe-container {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .device-selector {
+            margin-bottom: 20px;
+        }
+        .device-selector button {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .device-selector button.active {
+            background: #3b82f6;
+        }
+        .device-selector button:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>irado Chat Widget - Mobile Responsive Test</h1>
+        
+        <div class="test-section">
+            <h2>Device Preview</h2>
+            <div class="device-selector">
+                <button onclick="setDevice('desktop')" class="active">Desktop</button>
+                <button onclick="setDevice('tablet')">Tablet</button>
+                <button onclick="setDevice('mobile')">Mobile</button>
+                <button onclick="setDevice('mobile-small')">Mobile Small</button>
+            </div>
+            <div class="iframe-container">
+                <iframe id="preview" src="index.html" width="100%" height="100%"></iframe>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Chat Functionality Test</h2>
+            <button class="test-button" onclick="testChatOpen()">Test Chat Open</button>
+            <button class="test-button" onclick="testChatClose()">Test Chat Close</button>
+            <button class="test-button" onclick="testChatMessage()">Test Chat Message</button>
+            <button class="test-button" onclick="testSessionId()">Test Session ID</button>
+            <div id="test-results" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Mobile Responsive Features</h2>
+            <ul>
+                <li>✅ Chat widget scales properly on mobile</li>
+                <li>✅ Chat window adapts to screen size</li>
+                <li>✅ Touch-friendly buttons and inputs</li>
+                <li>✅ Responsive header layout</li>
+                <li>✅ Service cards stack on mobile</li>
+                <li>✅ Search bar adapts to mobile</li>
+            </ul>
+        </div>
+        
+        <div class="test-section">
+            <h2>Security Features</h2>
+            <ul>
+                <li>✅ API endpoint secured</li>
+                <li>✅ Authentication configured</li>
+                <li>✅ Unique session ID per page visit</li>
+                <li>✅ No sensitive data in HTML source</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const devices = {
+            'desktop': { width: '100%', height: '600px' },
+            'tablet': { width: '768px', height: '600px' },
+            'mobile': { width: '375px', height: '600px' },
+            'mobile-small': { width: '320px', height: '600px' }
+        };
+        
+        function setDevice(device) {
+            const iframe = document.getElementById('preview');
+            const buttons = document.querySelectorAll('.device-selector button');
+            
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            iframe.style.width = devices[device].width;
+            iframe.style.height = devices[device].height;
+        }
+        
+        function testChatOpen() {
+            const iframe = document.getElementById('preview');
+            try {
+                iframe.contentWindow.document.getElementById('chatToggle').click();
+                showResult('✅ Chat opened successfully');
+            } catch (e) {
+                showResult('❌ Error opening chat: ' + e.message);
+            }
+        }
+        
+        function testChatClose() {
+            const iframe = document.getElementById('preview');
+            try {
+                iframe.contentWindow.document.getElementById('chatClose').click();
+                showResult('✅ Chat closed successfully');
+            } catch (e) {
+                showResult('❌ Error closing chat: ' + e.message);
+            }
+        }
+        
+        function testChatMessage() {
+            const iframe = document.getElementById('preview');
+            try {
+                const chatInput = iframe.contentWindow.document.getElementById('chatInput');
+                const chatSend = iframe.contentWindow.document.getElementById('chatSend');
+                
+                chatInput.value = 'Test bericht voor grofvuil';
+                chatSend.click();
+                showResult('✅ Test message sent (check if API responds)');
+            } catch (e) {
+                showResult('❌ Error sending message: ' + e.message);
+            }
+        }
+        
+        function testSessionId() {
+            const iframe = document.getElementById('preview');
+            try {
+                const sessionId = iframe.contentWindow.iradoChat.getSessionId();
+                showResult('✅ Session ID: ' + sessionId);
+            } catch (e) {
+                showResult('❌ Error getting session ID: ' + e.message);
+            }
+        }
+        
+        function showResult(message) {
+            const resultDiv = document.getElementById('test-results');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = message;
+        }
+        
+        // Auto-refresh iframe every 30 seconds to test session ID generation
+        setInterval(() => {
+            const iframe = document.getElementById('preview');
+            iframe.src = iframe.src;
+        }, 30000);
+    </script>
+</body>
+</html>

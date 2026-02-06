@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: irado-voice-bot
+    runtime: python
+    pythonVersion: "3.11.9"
+    plan: starter
+    buildCommand: pip install -r chatbot/requirements.txt
+    startCommand: cd chatbot && gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_DEBUG
+        value: "false"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+

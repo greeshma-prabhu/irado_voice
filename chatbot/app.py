@@ -2,194 +2,93 @@
 SECURE Flask application for the Irado Chatbot
 Refactored for maximum security
 """
-from flask import Flask, request, jsonify, send_from_directory, Response, g
-import logging
+from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.security import check_password_hash
-from werkzeug.exceptions import HTTPException
 import base64
 import json
 import re
-import os
-import asyncio
-import time
-import uuid
 from datetime import datetime
-from zoneinfo import ZoneInfo
 from typing import Dict, List
-from collections import deque
-import threading
 
 from config import Config
 from database import DatabaseManager
 from ai_service import AIService
 from email_service import EmailService
-from logging_utils import (
-    log_api_call, log_session_start, log_session_message,
-    log_error, log_event
-)
-from system_log_service import SystemLogService
+import tempfile
+import os
+import time
+import subprocess
+import shutil
 
 app = Flask(__name__)
-app.config.from_object(Config)
-APP_TIMEZONE = ZoneInfo(app.config.get('APP_TIMEZONE', 'Europe/Amsterdam'))
+VOICE_SESSION_LANGUAGE = {}
 
+def normalize_language_code(language):
+    if not language:
+        return 'nl'
+    lang = str(language).strip().lower()
+    language_map = {
+        'nl': 'nl',
+        'en': 'en',
+        'tr': 'tr',
+        'ar': 'ar',
+        'dutch': 'nl',
+        'english': 'en',
+        'turkish': 'tr',
+        'arabic': 'ar'
+    }
+    return language_map.get(lang, 'nl')
 
-def now_tz():
-    return datetime.now(APP_TIMEZONE)
-
-# Add startup logging
-print("🚀 Starting Irado Chatbot...")
-print(f"📊 Database Host: {app.config.get('POSTGRES_HOST', 'NOT SET')}")
-print(f"📊 Database Name: {app.config.get('POSTGRES_DB', 'NOT SET')}")
-print(f"📊 Database User: {app.config.get('POSTGRES_USER', 'NOT SET')}")
-print(f"🔑 Azure OpenAI Endpoint: {app.config.get('AZURE_OPENAI_ENDPOINT', 'NOT SET')}")
-print(f"🔑 Azure OpenAI Deployment: {app.config.get('AZURE_OPENAI_DEPLOYMENT', 'NOT SET')}")
-print(f"🔑 Azure OpenAI API Key: {'SET' if app.config.get('AZURE_OPENAI_API_KEY') else 'NOT SET'}")
-print("✅ Configuration loaded successfully")
-
-# In-memory circular log buffer (last 1000 lines)
-LOG_BUFFER = deque(maxlen=1000)
-LOG_LOCK = threading.Lock()
-
-# Setup logging FIRST (before anything else)
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s %(levelname)s %(name)s %(message)s'
-)
-
-# Custom logging handler that writes to buffer
-class BufferHandler(logging.Handler):
-    def emit(self, record):
-        try:
-            log_entry = self.format(record)
-            timestamp = now_tz().strftime('%Y-%m-%d %H:%M:%S')
-            with LOG_LOCK:
-                LOG_BUFFER.append(f"[{timestamp}] {log_entry}")
-        except Exception:
-            self.handleError(record)
-
-# Setup logging with buffer handler
-buffer_handler = BufferHandler()
-buffer_handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
-buffer_handler.setLevel(logging.INFO)
-logging.getLogger().addHandler(buffer_handler)
-
-# CORS
-# The chatbot API is called from multiple frontends (website widget, dashboard).
-# If an origin is not listed here, the browser will block the response.
-def _cors_origins() -> list[str]:
-    raw = os.getenv("CORS_ALLOWED_ORIGINS") or os.getenv("CORS_ORIGINS")
-    if raw:
-        return [o.strip() for o in raw.split(",") if o.strip()]
-    # Defaults (safe allowlist). Can be extended via env var above.
-    return [
-        # Production website
-        "https://irado.nl",
-        "https://www.irado.nl",
-        # Mainfact hosted widget (if used)
-        "https://irado.mainfact.ai",
-        # Local dev
-        "http://localhost:8080",
-        "http://127.0.0.1:8080",
-        "http://localhost:3254",
-        "http://127.0.0.1:3254",
-        "http://localhost:3255",
-        # Azure apps (prod + dev)
-        "https://irado-chatbot-app.azurewebsites.net",
-        "https://irado-dashboard-app.azurewebsites.net",
-        "https://irado-dev-chatbot-app.azurewebsites.net",
-        "https://irado-dev-dashboard-app.azurewebsites.net",
+def rewrite_response_to_language(ai_service, text, lang_name):
+    system_prompt = (
+        f"You are a translation engine. Output ONLY {lang_name}. "
+        "Never output Dutch or any other language. "
+        "Do not add greetings or extra information. "
+        "Return plain text only."
+    )
+    messages = [
+        {'role': 'system', 'content': system_prompt},
+        {'role': 'user', 'content': text}
     ]
+    return ai_service.get_chat_completion(messages, tools=None, language=None)
 
+def translate_input_to_language(ai_service, text, lang_name):
+    system_prompt = (
+        f"You are a translation engine. Translate the following user message into {lang_name} only. "
+        "Never output Dutch or any other language. "
+        "Return only the translated text. Do not add explanations."
+    )
+    messages = [
+        {'role': 'system', 'content': system_prompt},
+        {'role': 'user', 'content': text}
+    ]
+    return ai_service.get_chat_completion(messages, tools=None, language=None)
+app.config.from_object(Config)
 
-CORS(
-    app,
-    resources={r"/api/*": {"origins": _cors_origins()}},
-    supports_credentials=False,
-    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
-    methods=["GET", "POST", "OPTIONS"],
-)
+# CORS - Only allow specific origins
+CORS(app, origins=[
+    'https://irado.mainfact.ai',
+    'http://localhost:8080',
+    'http://127.0.0.1:8080',
+    'http://localhost:3254',
+    'http://127.0.0.1:3254'
+])
 
 # Rate limiting setup
 limiter = Limiter(
-    app=app,
     key_func=get_remote_address,
     default_limits=["100 per minute"],
     storage_uri="memory://"
 )
+limiter.init_app(app)
 
 # Initialize services
 db_manager = DatabaseManager()
 ai_service = AIService()
 email_service = EmailService()
-system_log_service = SystemLogService()
-
-# Ensure system log tables exist (safe for prod; required for dev dashboards/log search).
-try:
-    system_log_service.ensure_tables()
-except Exception:
-    # Never crash app on logging init issues.
-    pass
-
-# Ensure core chat tables exist (safe for prod; required for empty dev DB).
-try:
-    db_manager.init_database()
-except Exception as e:
-    # Do not crash the whole app on startup; endpoints will surface DB issues.
-    logger = logging.getLogger("irado-app")
-    logger.error("Database initialization failed: %s", e)
-
-# Get logger (already configured above)
-logger = logging.getLogger("irado-app")
-
-
-@app.before_request
-def _set_request_context_ids():
-    """Attach correlation ids to each request for end-to-end tracing."""
-    g.request_id = str(uuid.uuid4())
-    g.request_start = time.monotonic()
-
-
-@app.errorhandler(Exception)
-def _handle_unexpected_exception(e: Exception):
-    """Catch unexpected errors and persist them to DB logs."""
-    # Let Flask handle HTTP exceptions (404, 401, etc.) normally.
-    if isinstance(e, HTTPException):
-        return e
-
-    try:
-        req_id = getattr(g, "request_id", None)
-        # Avoid double-logging if an endpoint already logged the exception.
-        if getattr(g, "_syslog_exception_logged", False):
-            raise e
-
-        system_log_service.log_exception(
-            event_name="api.unhandled_exception",
-            component="chatbot",
-            message=str(e),
-            exc=e,
-            request_id=req_id,
-            meta={
-                "path": request.path,
-                "method": request.method,
-                "remote_addr": request.remote_addr,
-            },
-        )
-    except Exception:
-        # If logging fails, still return a safe error payload.
-        pass
-
-    return jsonify(
-        {
-            "error": "Internal server error",
-            "timestamp": now_tz().isoformat(),
-            "request_id": getattr(g, "request_id", None),
-            "version": "2.2.0",
-        }
-    ), 500
 
 def check_auth(auth_header):
     """Check basic authentication with enhanced security"""
@@ -213,9 +112,12 @@ def check_auth(auth_header):
 def require_auth(f):
     """Decorator to require authentication"""
     def decorated_function(*args, **kwargs):
+        # Allow CORS preflight without auth
+        if request.method == 'OPTIONS':
+            return '', 204
         auth_header = request.headers.get('Authorization')
         if not check_auth(auth_header):
-            return jsonify({'error': 'Unauthorized', 'timestamp': now_tz().isoformat()}), 401
+            return jsonify({'error': 'Unauthorized', 'timestamp': datetime.now().isoformat()}), 401
         return f(*args, **kwargs)
     decorated_function.__name__ = f.__name__
     return decorated_function
@@ -243,8 +145,8 @@ def validate_chat_input(data):
     if len(chat_input) < 1 or len(chat_input) > 2000:
         return False, "Invalid chat input length"
     
-    # Check for potential XSS/injection
-    if re.search(r'[<>"\']', chat_input):
+    # Check for potential XSS/injection (allow apostrophes in normal speech)
+    if re.search(r'[<>"]', chat_input):
         return False, "Invalid characters in input"
     
     return True, "Valid"
@@ -264,249 +166,522 @@ def send_grofvuil_emails(session_id, chat_input, ai_response):
 # ============================================================================
 
 @app.route('/', methods=['GET'])
-def home():
-    """Serve the Irado website"""
-    return send_from_directory('/app/static', 'index.html')
+def index():
+    """Serve the main HTML page"""
+    import os
+    # Priority 1: Try chatbot/static (where voice bot modifications are)
+    static_path = os.path.join(os.path.dirname(__file__), 'static', 'index.html')
+    if os.path.exists(static_path):
+        with open(static_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    
+    # Priority 2: Try website directory
+    website_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'website', 'index.html')
+    if os.path.exists(website_path):
+        with open(website_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    
+    # Fallback: API info
+    return jsonify({
+        'message': 'Irado Chatbot API',
+        'endpoints': {
+            'health': '/health',
+            'voice_health': '/api/voice/health',
+            'chat': '/api/chat (POST)',
+            'speech_to_text': '/api/speech-to-text (POST)',
+            'text_to_speech': '/api/text-to-speech (POST)'
+        }
+    }), 200
 
 @app.route('/<path:filename>')
-def serve_static(filename):
-    """Serve static files from the website directory"""
-    return send_from_directory('/app/static', filename)
-
-
-@app.route('/media/<path:filename>', methods=['GET'])
-def serve_media(filename):
-    """Serve media files such as afvalplaats image.
-
-    This allows the frontend to embed images like the example photo that shows
-    where bulky waste should be placed on the street.
-    """
-    # Resolve media directory relative to this file so it works both locally
-    # and in the container (/app/media).
-    media_root = os.path.join(os.path.dirname(__file__), 'media')
-    return send_from_directory(media_root, filename)
+def serve_website_files(filename):
+    """Serve static files - prioritize chatbot/static (voice bot), then website"""
+    import os
+    
+    # Priority 1: Try chatbot/static first (where voice bot modifications are)
+    static_path = os.path.join(os.path.dirname(__file__), 'static')
+    static_file = os.path.join(static_path, filename)
+    
+    if os.path.exists(static_file) and os.path.isfile(static_file):
+        # Security check
+        if os.path.abspath(static_file).startswith(os.path.abspath(static_path)):
+            return send_from_directory(static_path, filename)
+    
+    # Priority 2: Try website directory
+    website_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'website')
+    website_file = os.path.join(website_path, filename)
+    
+    if os.path.exists(website_file) and os.path.isfile(website_file):
+        # Security check
+        if os.path.abspath(website_file).startswith(os.path.abspath(website_path)):
+            return send_from_directory(website_path, filename)
+    
+    return jsonify({'error': 'File not found'}), 404
 
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint - No authentication required for monitoring"""
     return jsonify({
         'status': 'healthy', 
-        'timestamp': now_tz().isoformat(),
-        'version': '2.2.0'
+        'timestamp': datetime.now().isoformat(),
+        'version': '1.0.0'
     })
 
+@app.route('/api/voice/health', methods=['GET'])
+def voice_health():
+    """Voice bot health check"""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'voice-bot',
+        'timestamp': datetime.now().isoformat()
+    })
 
-@app.route('/ready', methods=['GET'])
-def readiness_check():
-    """Readiness probe - light checks without external calls"""
-    try:
-        # Validate critical env without exposing values
-        cfg = Config()
-        required = {
-            'AZURE_OPENAI_ENDPOINT': bool(cfg.AZURE_OPENAI_ENDPOINT),
-            'AZURE_OPENAI_DEPLOYMENT': bool(cfg.AZURE_OPENAI_DEPLOYMENT),
-        }
-        if not all(required.values()):
-            logger.warning("Readiness: missing configuration flags: %s", {k: v for k, v in required.items() if not v})
-        return jsonify({'status': 'ready', 'checks': required, 'timestamp': now_tz().isoformat()})
-    except Exception as e:
-        logger.exception("Readiness error")
-        return jsonify({'status': 'error'}), 500
-
-@app.route('/api/chat', methods=['POST'])
-# @limiter.limit("10 per minute")  # Rate limiting disabled for testing
+@app.route('/api/speech-to-text', methods=['POST'])
 @require_auth
-def api_chat():
-    """SECURE chat endpoint - Only public endpoint for frontend
-
-    NOTE: The endpoint always returns a structured JSON payload for the UI under
-    the key "output". The structure is:
-    {
-        "text": "...",
-        "language": "nl|en|tr|ar",
-        "buttons": [...],
-        "showAfvalplaatsImage": bool
-    }
+def speech_to_text():
     """
-    session_id = None
+    Convert speech to text using Azure Speech Services.
+    
+    Request: multipart/form-data with 'audio' file
+    Returns: JSON with transcribed text
+    """
+    try:
+        # Check if audio file is present
+        if 'audio' not in request.files:
+            return jsonify({'error': 'No audio file provided'}), 400
+        
+        audio_file = request.files['audio']
+        if audio_file.filename == '':
+            return jsonify({'error': 'Empty audio file'}), 400
+        
+        # Get language from form data or default to Dutch
+        language = normalize_language_code(request.form.get('language', 'nl'))
+        
+        # Import Azure Speech SDK
+        try:
+            import azure.cognitiveservices.speech as speechsdk
+        except ImportError:
+            return jsonify({'error': 'Azure Speech SDK not installed'}), 500
+        
+        # Get Azure Speech credentials
+        speech_key = Config.AZURE_SPEECH_KEY
+        speech_region = Config.AZURE_SPEECH_REGION
+        
+        if not speech_key or not speech_region:
+            error_msg = f'Azure Speech Services not configured. Key: {"SET" if speech_key else "MISSING"}, Region: {speech_region or "MISSING"}'
+            print(f"ERROR: {error_msg}")
+            return jsonify({'error': error_msg}), 500
+        
+        print(f"DEBUG: Azure Speech configured - Region: {speech_region}")
+        
+        # Configure speech recognition (use region to avoid endpoint/key mismatch)
+        speech_config = speechsdk.SpeechConfig(
+            subscription=speech_key,
+            region=speech_region
+        )
+        # Give the user more time to start and to pause between words
+        speech_config.set_property(
+            speechsdk.PropertyId.SpeechServiceConnection_InitialSilenceTimeoutMs,
+            "8000"
+        )
+        speech_config.set_property(
+            speechsdk.PropertyId.SpeechServiceConnection_EndSilenceTimeoutMs,
+            "2500"
+        )
+        
+        # Map language codes to Azure Speech format
+        language_map = {
+            'nl': 'nl-NL',
+            'en': 'en-US',
+            'ar': 'ar-SA',
+            'tr': 'tr-TR'
+        }
+        speech_language = language_map.get(language, 'nl-NL')
+        speech_config.speech_recognition_language = speech_language
+        
+        # Save audio file temporarily
+        audio_ext = audio_file.filename.split('.')[-1] if '.' in (audio_file.filename or '') else 'webm'
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{audio_ext}') as tmp_file:
+            audio_file.save(tmp_file.name)
+            tmp_path = tmp_file.name
+        
+        file_size = os.path.getsize(tmp_path)
+        print(f"DEBUG STT: Saved audio to {tmp_path}")
+        print(f"DEBUG STT: File size: {file_size} bytes")
+        print(f"DEBUG STT: Audio format: {audio_ext}")
+        print(f"DEBUG STT: Language: {speech_language}")
+        
+        if file_size == 0:
+            return jsonify({'error': 'Empty audio file received'}), 400
+        if file_size < 1000:
+            print(f"WARNING: Audio file very small ({file_size} bytes)")
+        
+        # Save a copy for debugging
+        try:
+            debug_path = '/tmp/last_audio_debug.webm'
+            shutil.copy(tmp_path, debug_path)
+            print(f"DEBUG: Saved copy to {debug_path} for inspection")
+        except Exception as copy_error:
+            print(f"DEBUG: Could not save debug copy: {copy_error}")
+        
+        try:
+            # Configure audio input
+            audio_ext_lower = (audio_ext or '').lower()
+            working_path = tmp_path
+            # Convert WebM/Opus to WAV to avoid GStreamer issues in Azure SDK
+            if audio_ext_lower in ('webm', 'weba'):
+                print("DEBUG STT: Converting WebM to WAV...")
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as wav_file:
+                    wav_path = wav_file.name
+                ffmpeg_cmd = [
+                    'ffmpeg', '-y', '-i', tmp_path,
+                    '-ac', '1', '-ar', '16000', '-f', 'wav', wav_path
+                ]
+                print(f"DEBUG STT: FFmpeg command: {' '.join(ffmpeg_cmd)}")
+                result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+                if result.returncode != 0:
+                    print(f"ERROR: FFmpeg failed: {result.stderr}")
+                    return jsonify({'error': 'Audio conversion failed', 'details': result.stderr}), 500
+                converted_size = os.path.getsize(wav_path)
+                print(f"DEBUG STT: Converted to WAV, size: {converted_size} bytes")
+                working_path = wav_path
+                audio_ext_lower = 'wav'
+
+            if audio_ext_lower in ('ogg', 'oga', 'opus'):
+                # Use compressed stream format for OGG/Opus audio
+                container_format = speechsdk.AudioStreamContainerFormat.OGG_OPUS
+                stream_format = speechsdk.audio.AudioStreamFormat(
+                    compressed_stream_format=container_format
+                )
+                push_stream = speechsdk.audio.PushAudioInputStream(stream_format)
+                with open(working_path, "rb") as audio_fp:
+                    push_stream.write(audio_fp.read())
+                push_stream.close()
+                audio_config = speechsdk.audio.AudioConfig(stream=push_stream)
+                print("DEBUG: Created AudioConfig from PushAudioInputStream (ogg/opus)")
+            else:
+                audio_config = speechsdk.audio.AudioConfig(filename=working_path)
+                print(f"DEBUG: Created AudioConfig from file: {working_path}")
+            
+            recognizer = speechsdk.SpeechRecognizer(
+                speech_config=speech_config,
+                audio_config=audio_config
+            )
+            
+            print(f"DEBUG STT: Starting Azure Speech recognition...")
+            
+            # Perform recognition
+            result = recognizer.recognize_once()
+            
+            print("DEBUG STT: Recognition completed")
+            print(f"DEBUG STT: Result reason: {result.reason}")
+            if hasattr(result, 'text'):
+                print(f"DEBUG STT: Recognized text: '{result.text}'")
+            
+            if result.reason == speechsdk.ResultReason.RecognizedSpeech:
+                text = result.text.strip()
+                return jsonify({
+                    'text': text,
+                    'language': language
+                }), 200
+            elif result.reason == speechsdk.ResultReason.NoMatch:
+                print("DEBUG STT: No speech recognized - audio may be silent or unclear")
+                no_match_details = result.no_match_details
+                print(f"DEBUG STT: NoMatch reason: {no_match_details.reason if no_match_details else 'Unknown'}")
+                return jsonify({
+                    'error': 'No speech could be recognized',
+                    'text': ''
+                }), 400
+            elif result.reason == speechsdk.ResultReason.Canceled:
+                details = result.cancellation_details
+                print(f"DEBUG STT: Canceled - Reason: {details.reason}")
+                print(f"DEBUG STT: Error details: {details.error_details}")
+                return jsonify({
+                    'error': f'Recognition canceled: {details.reason}',
+                    'details': details.error_details or '',
+                    'text': ''
+                }), 500
+            else:
+                return jsonify({
+                    'error': f'Recognition failed: {result.reason}',
+                    'text': ''
+                }), 500
+                
+        finally:
+            # Clean up temporary file(s)
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+            try:
+                if 'working_path' in locals() and working_path != tmp_path and os.path.exists(working_path):
+                    os.unlink(working_path)
+            except Exception:
+                pass
+            
+    except Exception as e:
+        import traceback
+        print(f"Error in speech-to-text: {str(e)}")
+        traceback.print_exc()
+        return jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/speech-to-text-mock', methods=['POST', 'OPTIONS'])
+@require_auth
+def speech_to_text_mock():
+    """Mock endpoint for testing UI without Azure Speech"""
+    time.sleep(1)
+    return jsonify({
+        'text': 'Ik wil een bank laten ophalen',
+        'language': 'nl'
+    }), 200
+
+@app.route('/api/text-to-speech', methods=['POST'])
+@require_auth
+def text_to_speech():
+    """
+    Convert text to speech using Azure Speech Services.
+    
+    Request: JSON with 'text' and 'language'
+    Returns: WAV audio file
+    """
     try:
         data = request.get_json()
-        session_id = data.get('sessionId')
-
-        # DB-first system log event (searchable in dashboard)
-        try:
-            system_log_service.log_event(
-                severity="info",
-                event_name="api.chat.request",
-                component="chatbot",
-                message="Received chat request",
-                request_id=getattr(g, "request_id", None),
-                session_id=session_id,
-                meta={
-                    "path": request.path,
-                    "method": request.method,
-                    "source": data.get("source"),
-                    "message_length": len(data.get("chatInput") or ""),
-                    "message_preview": (data.get("chatInput") or "")[:120],
-                    "remote_addr": request.remote_addr,
-                },
-            )
-        except Exception:
-            pass
+        text = data.get('text', '')
+        language = normalize_language_code(data.get('language', 'nl'))
         
-        # Log incoming API call
-        log_api_call(session_id, data.get('chatInput', ''))
+        if not text:
+            return jsonify({'error': 'No text provided'}), 400
+        
+        # Import Azure Speech SDK
+        try:
+            import azure.cognitiveservices.speech as speechsdk
+        except ImportError:
+            return jsonify({'error': 'Azure Speech SDK not installed'}), 500
+        
+        # Get Azure Speech credentials
+        speech_key = Config.AZURE_SPEECH_KEY
+        speech_region = Config.AZURE_SPEECH_REGION
+        
+        if not speech_key or not speech_region:
+            return jsonify({'error': 'Azure Speech Services not configured'}), 500
+        
+        # Configure speech synthesis (use region to avoid endpoint/key mismatch)
+        speech_config = speechsdk.SpeechConfig(
+            subscription=speech_key,
+            region=speech_region
+        )
+        
+        # Map language codes to voice names
+        voice_map = {
+            'nl': 'nl-NL-ColetteNeural',
+            'en': 'en-US-JennyNeural',
+            'ar': 'ar-SA-ZariyahNeural',
+            'tr': 'tr-TR-EmelNeural'
+        }
+        voice_name = voice_map.get(language, 'nl-NL-ColetteNeural')
+        speech_config.speech_synthesis_voice_name = voice_name
+        
+        # Create synthesizer
+        synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config)
+        
+        # Synthesize speech
+        result = synthesizer.speak_text_async(text).get()
+        
+        if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+            # Return audio data
+            from flask import Response
+            return Response(
+                result.audio_data,
+                mimetype='audio/wav',
+                headers={
+                    'Content-Disposition': 'attachment; filename=speech.wav'
+                }
+            )
+        elif result.reason == speechsdk.ResultReason.Canceled:
+            details = result.cancellation_details
+            return jsonify({
+                'error': f'Speech synthesis canceled: {details.reason}',
+                'details': details.error_details or ''
+            }), 500
+        else:
+            return jsonify({
+                'error': f'Speech synthesis failed: {result.reason}'
+            }), 500
+            
+    except Exception as e:
+        import traceback
+        print(f"Error in text-to-speech: {str(e)}")
+        traceback.print_exc()
+        return jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/text-to-speech-mock', methods=['POST', 'OPTIONS'])
+@require_auth
+def text_to_speech_mock():
+    """Mock endpoint for testing UI without Azure Speech"""
+    time.sleep(1)
+    wav_data = (
+        b'RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00'
+        b'D\xac\x00\x00\x88X\x01\x00\x02\x00\x10\x00data\x00\x00\x00\x00'
+    )
+    return Response(wav_data, mimetype='audio/wav')
+
+@app.route('/api/chat', methods=['POST'])
+@limiter.limit("10 per minute")  # Strict rate limiting for chat
+@require_auth
+def api_chat():
+    """SECURE chat endpoint - Only public endpoint for frontend"""
+    try:
+        data = request.get_json()
         
         # Validate input
         is_valid, error_msg = validate_chat_input(data)
         if not is_valid:
-            log_event('VALIDATION_ERROR', f'Invalid input: {error_msg}', {'session_id': session_id}, 'warning')
-            try:
-                system_log_service.log_event(
-                    severity="warning",
-                    event_name="api.chat.validation_error",
-                    component="chatbot",
-                    message=f"Invalid input: {error_msg}",
-                    request_id=getattr(g, "request_id", None),
-                    session_id=session_id,
-                    http_status=400,
-                )
-            except Exception:
-                pass
             return jsonify({
                 'error': error_msg,
-                'timestamp': now_tz().isoformat()
+                'timestamp': datetime.now().isoformat()
             }), 400
         
+        session_id = data.get('sessionId')
         chat_input = data.get('chatInput')
+        requested_language = normalize_language_code(data.get('language', 'nl'))
+        allow_greeting = data.get('allowGreeting', True)
+        is_voice = bool(data.get('is_voice', False))
+        debug_flag = bool(data.get('debug', False))
+        if is_voice:
+            if session_id in VOICE_SESSION_LANGUAGE:
+                requested_language = VOICE_SESSION_LANGUAGE[session_id]
+            else:
+                VOICE_SESSION_LANGUAGE[session_id] = requested_language
+        print(f"Chat API: language={requested_language} session={session_id} is_voice={is_voice}")
+        if is_voice:
+            print(f"Chat API: voice chat_input='{chat_input}' allow_greeting={allow_greeting}")
+        if is_voice:
+            # Voice greeting is handled client-side; never greet from backend
+            allow_greeting = False
         
-        # Create or update session
-        log_session_start(session_id, data.get('source', 'website'))
-        db_manager.create_or_update_session(session_id)
-        
-        # Save user message
-        log_session_message(session_id, 'user', len(chat_input))
-        db_manager.save_message(session_id, 'user', chat_input)
-        
-        # Get chat history for context
-        chat_history = db_manager.get_chat_history(session_id, limit=10)
-        log_event('CHAT_HISTORY', f'Retrieved {len(chat_history)} messages from history', {
-            'session_id': session_id,
-            'message_count': len(chat_history)
-        }, 'debug')
-        
-        # Prepare messages for AI
-        messages = []
-        for msg in chat_history:
-            role = 'assistant' if msg['message_type'] == 'bot' else msg['message_type']
-            messages.append({
-                'role': role,
-                'content': msg['content']
-            })
-        
-        # Get AI response with tool handling.
-        # This now returns a structured UI payload (dict) instead of a plain string.
-        log_event('AI_START', 'Getting AI response with tools', {
-            'session_id': session_id,
-            'message_count': len(messages)
-        })
-        tools = ai_service.get_available_tools()
-        ai_response = ai_service.get_chat_completion_with_tools(
-            messages,
-            tools,
-            session_id=session_id,
-            request_id=getattr(g, "request_id", None),
-        )
-        
-        # Ensure we always have a dictionary for the UI and for storage.
-        if not isinstance(ai_response, dict):
-            ai_response = {
-                "text": str(ai_response),
-                "language": "nl",
-                "buttons": [],
-                "showAfvalplaatsImage": False,
-            }
-
-        # Serialize response for storage (database expects a string content field).
-        from json import dumps as json_dumps
-        serialized_response = json_dumps(ai_response, ensure_ascii=False)
-
-        # Save AI response
-        log_session_message(session_id, 'bot', len(serialized_response))
-        db_manager.save_message(session_id, 'bot', serialized_response)
-        
-        log_event('API_SUCCESS', 'Chat request completed successfully', {
-            'session_id': session_id,
-            'response_length': len(serialized_response)
-        })
-
-        # DB-first system success log
+        # Create or update session (optional if DB is unavailable)
+        db_available = True
         try:
-            duration_ms = None
-            if getattr(g, "request_start", None) is not None:
-                duration_ms = int((time.monotonic() - g.request_start) * 1000)
-            system_log_service.log_event(
-                severity="info",
-                event_name="api.chat.success",
-                component="chatbot",
-                message="Chat request completed successfully",
-                request_id=getattr(g, "request_id", None),
-                session_id=session_id,
-                http_status=200,
-                meta={
-                    "duration_ms": duration_ms,
-                    "response_length": len(serialized_response),
-                },
-            )
-        except Exception:
-            pass
+            db_manager.create_or_update_session(session_id)
+            # Save user message
+            db_manager.save_message(session_id, 'user', chat_input)
+            # Get chat history for context
+            chat_history = db_manager.get_chat_history(session_id, limit=10)
+        except Exception as db_error:
+            db_available = False
+            chat_history = []
+            print(f"Chat API warning: DB unavailable, continuing without history: {db_error}")
         
-        # Return response
-        return jsonify({'output': ai_response})
+        # Prepare messages for AI (user-only history to avoid language anchoring)
+        model_input = chat_input
+        if is_voice and requested_language in ('en', 'tr', 'ar'):
+            try:
+                input_lang_map = {
+                    'en': 'English',
+                    'tr': 'Turkish',
+                    'ar': 'Arabic'
+                }
+                input_lang_name = input_lang_map.get(requested_language, 'English')
+                model_input = translate_input_to_language(ai_service, chat_input, input_lang_name)
+                print(f"Chat API: translated_input='{model_input}'")
+            except Exception as translate_error:
+                print(f"Chat API warning: input translation failed: {translate_error}")
+                model_input = chat_input
+
+        if is_voice:
+            # Voice mode: use only the current user message to avoid any history bleed
+            messages = [{
+                'role': 'user',
+                'content': model_input
+            }]
+        else:
+            messages = []
+            for msg in chat_history:
+                if msg['message_type'] != 'user':
+                    continue
+                messages.append({
+                    'role': 'user',
+                    'content': msg['content']
+                })
+
+        lang_name_map = {
+            'nl': 'Dutch',
+            'en': 'English',
+            'tr': 'Turkish',
+            'ar': 'Arabic'
+        }
+        lang_name = lang_name_map.get(requested_language, 'Dutch')
+        system_prompt = (
+            f"You MUST reply ONLY in {lang_name}. "
+            "Do NOT switch languages. "
+            "Do NOT auto-detect language. "
+            f"Always assume the user wants {lang_name}. "
+            f"Set JSON field language to '{requested_language}'. "
+        )
+        if allow_greeting is False:
+            system_prompt += (
+                "Do NOT greet or introduce yourself. "
+                "Do NOT repeat the welcome message. "
+                "Answer the user's question directly. "
+            )
+        if is_voice:
+            print(f"Chat API: system_prompt='{system_prompt}'")
+
+        # Remove any previous system messages and insert a single system prompt
+        messages = [m for m in messages if m.get('role') != 'system']
+        messages.insert(0, {
+            'role': 'system',
+            'content': system_prompt
+        })
+        
+        # Get AI response
+        tools = ai_service.get_available_tools()
+        ai_response = ai_service.get_chat_completion(messages, tools, requested_language)
+        if is_voice:
+            print(f"Chat API: raw ai_response='{ai_response}'")
+        
+        # Voice mode hard-lock: rewrite response in selected language if needed
+        if is_voice and requested_language in ('en', 'tr', 'ar'):
+            try:
+                lang_name_map = {
+                    'en': 'English',
+                    'tr': 'Turkish',
+                    'ar': 'Arabic'
+                }
+                lang_name = lang_name_map.get(requested_language, 'English')
+                ai_response = rewrite_response_to_language(ai_service, ai_response, lang_name)
+                print(f"Chat API: rewritten_response='{ai_response}'")
+            except Exception as rewrite_error:
+                print(f"Chat API warning: rewrite failed, returning original response: {rewrite_error}")
+        
+        # Save AI response (if DB is available)
+        if db_available:
+            db_manager.save_message(session_id, 'bot', ai_response)
+        
+        # Return response (include debug info if requested)
+        response_payload = {'output': ai_response}
+        if debug_flag:
+            response_payload['debug'] = {
+                'requested_language': requested_language,
+                'allow_greeting': allow_greeting,
+                'is_voice': is_voice,
+                'session_id': session_id,
+                'translated_input': model_input if is_voice else None
+            }
+        return jsonify(response_payload)
         
     except Exception as e:
-        # Mark as already logged to avoid double logging by global error handler
-        try:
-            g._syslog_exception_logged = True
-        except Exception:
-            pass
-
-        try:
-            duration_ms = None
-            if getattr(g, "request_start", None) is not None:
-                duration_ms = int((time.monotonic() - g.request_start) * 1000)
-            system_log_service.log_exception(
-                event_name="api.chat.error",
-                component="chatbot",
-                message=str(e),
-                exc=e,
-                request_id=getattr(g, "request_id", None),
-                session_id=session_id,
-                http_status=500,
-                meta={
-                    "duration_ms": duration_ms,
-                    "path": request.path,
-                    "method": request.method,
-                    "remote_addr": request.remote_addr,
-                },
-            )
-        except Exception:
-            pass
-
-        log_error('api_chat', e, session_id)
-        logger.exception("Chat API error: %s", e)
         import traceback
-        import sys
-        print(f"🚨 CRITICAL ERROR in /api/chat:", file=sys.stderr)
-        print(f"Error: {str(e)}", file=sys.stderr)
-        print(f"Traceback:", file=sys.stderr)
-        traceback.print_exc(file=sys.stderr)
-        sys.stderr.flush()
+        print(f"Chat API error: {e}")
+        traceback.print_exc()
         return jsonify({
             'error': 'Internal server error',
-            'details': str(e),
-            'timestamp': now_tz().isoformat(),
-            'version': '2.2.0'
+            'message': str(e),
+            'timestamp': datetime.now().isoformat()
         }), 500
 
 # ============================================================================
@@ -567,7 +742,7 @@ def internal_email_customer():
 def internal_datetime():
     """INTERNAL datetime endpoint - Local access only"""
     try:
-        current_time = now_tz()
+        current_time = datetime.now()
         return jsonify({
             'datetime': current_time.isoformat(),
             'formatted': current_time.strftime('%Y-%m-%d %H:%M:%S'),
@@ -608,102 +783,42 @@ def internal_admin_session_details(session_id):
         print(f"Internal admin session details error: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-
 # ============================================================================
 # APPLICATION INITIALIZATION
 # ============================================================================
 
-@app.route('/api/logs', methods=['GET'])
-@require_auth
-def get_logs():
-    """
-    Get recent logs from the in-memory buffer
-    Query params:
-    - lines: number of lines to return (default: 100, max: 1000)
-    - filter: comma-separated log levels (ERROR,WARNING,INFO)
-    """
-    try:
-        lines = min(int(request.args.get('lines', 100)), 1000)
-        filter_levels = request.args.get('filter', '').upper().split(',') if request.args.get('filter') else None
-        
-        with LOG_LOCK:
-            all_logs = list(LOG_BUFFER)
-        
-        # Filter by log level if specified
-        if filter_levels and filter_levels != ['']:
-            filtered_logs = []
-            for log in all_logs:
-                for level in filter_levels:
-                    if level in log:
-                        filtered_logs.append(log)
-                        break
-            all_logs = filtered_logs
-        
-        # Return most recent N lines
-        recent_logs = all_logs[-lines:] if lines < len(all_logs) else all_logs
-        
-        return jsonify({
-            'success': True,
-            'logs': recent_logs,
-            'total': len(recent_logs),
-            'buffer_size': len(LOG_BUFFER)
-        })
-    
-    except Exception as e:
-        logger.error(f"Error fetching logs: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/logs/stream', methods=['GET'])
-@require_auth
-def stream_logs():
-    """
-    Server-Sent Events (SSE) endpoint for live log streaming
-    """
-    def generate():
-        last_size = 0
-        try:
-            while True:
-                with LOG_LOCK:
-                    current_size = len(LOG_BUFFER)
-                    if current_size > last_size:
-                        # Send new logs
-                        new_logs = list(LOG_BUFFER)[last_size:]
-                        for log in new_logs:
-                            yield f"data: {json.dumps({'log': log})}\n\n"
-                        last_size = current_size
-                
-                # Wait a bit before checking again
-                import time
-                time.sleep(1)
-        except GeneratorExit:
-            pass
-    
-    return Response(generate(), mimetype='text/event-stream')
-
 def init_app():
     """Initialize the application"""
     try:
-        # Light-weight, non-blocking startup; do not call external services here
-        logger.info("Application initialization: skipped heavy checks (non-blocking startup)")
+        # Test database connection (optional for development - app can still run)
+        try:
+            db_manager.get_connection()
+            print("✅ Database connection successful")
+        except Exception as db_error:
+            print(f"⚠️  Database connection failed: {db_error}")
+            print("⚠️  Continuing without database (some features may not work)")
+            print("⚠️  To fix: Start PostgreSQL or update .env with correct database settings")
+        
+        # Test OpenAI connection (optional - skip if not critical)
+        try:
+            test_response = ai_service.get_chat_completion([
+                {'role': 'user', 'content': 'test'}
+            ])
+            print("✅ OpenAI connection successful")
+        except Exception as e:
+            print(f"⚠️  OpenAI connection test skipped: {e}")
+        
+        print("✅ Application initialized (some services may be unavailable)")
         return True
         
     except Exception as e:
-        logger.warning(f"Initialization error (non-blocking): {e}")
-        return True  # Never block startup
+        print(f"❌ Initialization error: {e}")
+        return False
 
 if __name__ == '__main__':
-    # Allow port override via env (Azure App Service/ACI)
-    port_str = os.getenv('PORT') or os.getenv('WEBSITES_PORT') or '80'
-    try:
-        port = int(port_str)
-    except ValueError:
-        port = 80
-    try:
-        init_app()
-    except Exception as e:
-        logger.warning(f"Startup init warning (continuing): {e}")
-    logger.info("Starting Flask app on port %s", port)
-    app.run(host='0.0.0.0', port=port, debug=False)
+    if init_app():
+        app.run(host='0.0.0.0', port=5000, debug=False)
+    else:
+        print("Failed to initialize application")
+
+

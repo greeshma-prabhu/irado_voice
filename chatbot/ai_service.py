@@ -134,12 +134,29 @@ FOUTAFHANDELING
 
         return base_prompt + ui_contract_instructions
     
-    def get_chat_completion(self, messages: List[Dict], tools: List[Dict] = None) -> str:
+    def get_chat_completion(self, messages: List[Dict], tools: List[Dict] = None, language: Optional[str] = None) -> str:
         """Get chat completion from OpenAI"""
         try:
-            # Prepare messages with system prompt
-            system_message = {"role": "system", "content": self.get_system_prompt()}
-            all_messages = [system_message] + messages
+            # Prepare messages with system prompt unless one is already provided
+            has_system = any(msg.get('role') == 'system' for msg in messages)
+            if has_system:
+                all_messages = messages
+            else:
+                system_prompt = self.get_system_prompt()
+                if language:
+                    lang_name_map = {
+                        'nl': 'Dutch',
+                        'en': 'English',
+                        'tr': 'Turkish',
+                        'ar': 'Arabic'
+                    }
+                    lang_name = lang_name_map.get(language, language)
+                    system_prompt += (
+                        f"\n\nSTRICT LANGUAGE RULE: Reply ONLY in {lang_name} "
+                        f"and set JSON field language to '{language}'. Do not switch languages."
+                    )
+                system_message = {"role": "system", "content": system_prompt}
+                all_messages = [system_message] + messages
             
             # Prepare function definitions if tools are provided
             function_definitions = []
@@ -186,8 +203,12 @@ FOUTAFHANDELING
         """Get chat completion with tool handling"""
         session_label = session_id or 'unknown_session'
         try:
-            system_message = {"role": "system", "content": self.get_system_prompt()}
-            all_messages = [system_message] + messages
+            has_system = any(msg.get('role') == 'system' for msg in messages)
+            if has_system:
+                all_messages = messages
+            else:
+                system_message = {"role": "system", "content": self.get_system_prompt()}
+                all_messages = [system_message] + messages
 
             function_definitions = [
                 tool for tool in tools

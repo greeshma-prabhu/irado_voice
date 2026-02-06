@@ -1,0 +1,37 @@
+**/.git
+**/.gitignore
+**/.env
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*.log
+**/*.zip
+**/*.tar
+**/*.tar.gz
+**/*.tgz
+**/*.7z
+
+# Local envs / caches
+**/venv/
+**/.venv/
+**/node_modules/
+**/.pytest_cache/
+
+# Large project data & backups (not needed for runtime)
+backups/
+data/
+deployments/
+nextcloud/
+irado_scraper_project/
+irado-missing/
+tests/
+scripts/
+**/*.csv
+**/*.sql
+**/*.json
+**/*.md
+**/*.txt
+**/*.yaml
+**/*.yml
+

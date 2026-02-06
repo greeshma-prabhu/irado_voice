@@ -12,7 +12,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
     <link rel="manifest" href="/site.webmanifest?v=2">
     
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=voice-20260205">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -130,6 +130,15 @@
 
     <!-- Chat Widget -->
     <div class="chat-widget">
+        <!-- Action Buttons: CALL and VOICE -->
+        <button class="action-btn call-btn" id="callBtn" title="Call">
+            📞
+        </button>
+        <button class="action-btn voice-btn" id="voiceBtn" title="Voice">
+            🎤
+        </button>
+        
+        <!-- Original Chat Button (by co-developer) -->
         <button class="chat-toggle" id="chatToggle">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -170,6 +179,6 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=voice-20260206b"></script>
 </body>
 </html>
