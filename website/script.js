@@ -346,17 +346,31 @@ class IradoChat {
             selector.remove();
         }
 
+        const greetings = {
+            nl: 'Hallo! Ik ben de virtuele assistent van Irado. Hoe kan ik je vandaag helpen?',
+            en: 'Hello! I am Irado’s virtual assistant. How can I help you today?',
+            tr: 'Merhaba! Irado’nun sanal asistanıyım. Bugün size nasıl yardımcı olabilirim?',
+            ar: 'مرحباً! أنا المساعد الافتراضي لِـ Irado. كيف يمكنني مساعدتك اليوم؟'
+        };
+        const greetingText = greetings[langCode] || greetings.nl;
+        const greetingMsg = this.createMessage(greetingText, 'bot');
+        this.chatMessages.appendChild(greetingMsg);
+        this.scrollToBottom();
+
         // Start het gesprek in de gekozen taal zonder het technische bericht te tonen.
         this.showTypingIndicator();
         this.isLoading = true;
         this.chatSend.disabled = true;
 
-        this.sendToApi(triggerMessage)
+        this.sendToApi(triggerMessage, this.currentLanguage, false)
             .then(rawOutput => {
                 const payload = this.normalizePayload(rawOutput);
                 this.hideTypingIndicator();
-                const botMessage = this.createBotMessageFromPayload(payload);
-                this.chatMessages.appendChild(botMessage);
+                if (payload.showAfvalplaatsImage || (Array.isArray(payload.buttons) && payload.buttons.length > 0)) {
+                    payload.text = '';
+                    const botMessage = this.createBotMessageFromPayload(payload);
+                    this.chatMessages.appendChild(botMessage);
+                }
             })
             .catch(error => {
                 console.error('Language start error:', error);
