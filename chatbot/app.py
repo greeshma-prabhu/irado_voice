@@ -641,6 +641,14 @@ def api_chat():
         # Get AI response
         tools = ai_service.get_available_tools()
         ai_response = ai_service.get_chat_completion(messages, tools, requested_language)
+        if not ai_response or not str(ai_response).strip():
+            fallback_map = {
+                'en': 'Sorry, no response was received. Please try again.',
+                'nl': 'Sorry, er is geen antwoord ontvangen. Probeer het opnieuw.',
+                'tr': 'Üzgünüm, bir yanıt alınamadı. Lütfen tekrar deneyin.',
+                'ar': 'عذرًا، لم يتم استلام أي رد. يرجى المحاولة مرة أخرى.'
+            }
+            ai_response = fallback_map.get(requested_language, fallback_map['nl'])
         if is_voice:
             print(f"Chat API: raw ai_response='{ai_response}'")
         
