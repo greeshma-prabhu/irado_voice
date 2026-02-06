@@ -633,7 +633,9 @@ class IradoChat {
         
         const data = await response.json();
         
-        if (!data.output && !data.error) {
+        if (!Object.prototype.hasOwnProperty.call(data, 'output') &&
+            !Object.prototype.hasOwnProperty.call(data, 'error')) {
+            console.warn('Chat API returned unexpected payload:', data);
             throw new Error('Invalid response format');
         }
         
@@ -645,7 +647,7 @@ class IradoChat {
         }
         
         // Backend returns the structured UI payload under "output"
-        return data.output;
+        return data.output ?? '';
     }
     
     scrollToBottom() {
