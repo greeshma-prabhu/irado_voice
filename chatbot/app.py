@@ -566,11 +566,11 @@ def api_chat():
         # Create or update session (optional if DB is unavailable)
         db_available = True
         try:
-            db_manager.create_or_update_session(session_id)
-            # Save user message
-            db_manager.save_message(session_id, 'user', chat_input)
-            # Get chat history for context
-            chat_history = db_manager.get_chat_history(session_id, limit=10)
+        db_manager.create_or_update_session(session_id)
+        # Save user message
+        db_manager.save_message(session_id, 'user', chat_input)
+        # Get chat history for context
+        chat_history = db_manager.get_chat_history(session_id, limit=10)
         except Exception as db_error:
             db_available = False
             chat_history = []
@@ -607,7 +607,7 @@ def api_chat():
                     'role': 'user',
                     'content': msg['content']
                 })
-
+        
         lang_name_map = {
             'nl': 'Dutch',
             'en': 'English',
@@ -666,6 +666,14 @@ def api_chat():
             except Exception as rewrite_error:
                 print(f"Chat API warning: rewrite failed, returning original response: {rewrite_error}")
         
+        # Remove any system/policy leakage from the response
+        if isinstance(ai_response, str):
+            ai_response = re.sub(
+                r"(?is)important:\s*google's policies.*?(?:language:\s*\w+\s*)",
+                "",
+                ai_response
+            ).strip()
+
         # Save AI response (if DB is available)
         if db_available:
             db_manager.save_message(session_id, 'bot', ai_response)
