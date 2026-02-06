@@ -425,7 +425,12 @@ class IradoChat {
         }
 
         if (!payload.text) {
-            payload.text = '';
+            payload.text =
+                payload.message ||
+                payload.response ||
+                payload.answer ||
+                payload.content ||
+                '';
         }
         if (!payload.language) {
             payload.language = this.currentLanguage || 'nl';
@@ -472,6 +477,9 @@ class IradoChat {
 
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
+        if (!payload.text && !payload.showAfvalplaatsImage && (!payload.buttons || payload.buttons.length === 0)) {
+            payload.text = 'Sorry, er is geen antwoord ontvangen. Probeer het opnieuw.';
+        }
         const parsed = this.parseMarkdown(payload.text || '');
         contentDiv.innerHTML = `<p>${parsed}</p>`;
         messageDiv.appendChild(contentDiv);
